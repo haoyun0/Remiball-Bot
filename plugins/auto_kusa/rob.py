@@ -29,8 +29,6 @@ rob_start = on_regex(r'^喜报\n(.*?玩家.*?使用 .*?草.*? 获得了\d+个草
                      rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]) & isInBotList([bot_main]))
 rob_free = on_command('免费礼炮', rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]))
 rob_test = on_command('围殴测试', rule=GROUP() & isInBotList([bot_main]) & isInUserList(admin_list))
-rob_count = on_regex(r'围殴.*?成功！你获得了\d+草！',
-                     rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]))
 rob_reset_name = on_regex(rf'^本次围殴结束，玩家',
                           rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]))
 
