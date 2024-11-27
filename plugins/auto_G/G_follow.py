@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, timedelta
 
 from nonebot import on_regex, require
@@ -53,15 +54,9 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
     tot = 0
     c = [0, 0, 0, 0, 0]
     for i in range(5):
-        t = target[i]
-        t2 = f"G({t}校区) * "
-        if t2 in arg:
-            tmp = arg.index(t2) + len(t2)
-            num = 0
-            while arg[tmp].isdigit():
-                num = num * 10 + int(arg[tmp])
-                tmp += 1
-            c[i] = int(num * G_data[i])
+        x = re.search(rf"G\({target[i]}校区\) \* (\d+)")
+        if x is not None:
+            c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
     if tot < 100000000:
         c = [1, 1, 1, 1, 1]
