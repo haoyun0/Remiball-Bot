@@ -14,7 +14,10 @@ bot_id_chu = 3056318700
 
 async def send_msg(bot: Union[Bot, int, str], message: str, group_id: int = 0, user_id: int = 0):
     if isinstance(bot, (int, str)):
-        bot: Bot = get_bot(str(bot))
+        try:
+            bot: Bot = get_bot(str(bot))
+        except:
+            return None
     if group_id > 0:
         try:
             return await bot.send_group_msg(group_id=group_id, message=message)
