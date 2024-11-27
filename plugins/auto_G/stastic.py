@@ -129,9 +129,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str 
         await matcher.finish()
     await send_msg(bot, user_id=chu_id, message='!G卖出 all')
     if bot.self_id == str(Bank_bot):
-        await update_kusa()
         await send_msg(bot, group_id=test_group_id, message='/集资')
         await asyncio.sleep(10)
+        await update_kusa()
         _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
                      rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]),
                      expire_time=datetime.now() + timedelta(seconds=5))
