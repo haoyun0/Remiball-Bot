@@ -2,7 +2,7 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import require, on_regex
+from nonebot import require, on_regex, on_command
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -20,6 +20,7 @@ test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 GBot = 3345744507
 notice_id = 323690346  # 给谁发通知
+Bank_bot = 3584213919
 target = ['东', '南', '北', '珠海', '深圳']
 finance = {}
 
@@ -39,6 +40,8 @@ get_G = on_regex(r'^G市有风险，炒G需谨慎！\n.*?\n?当前G值为：\n�
                  rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]))
 G_conclude = on_regex(r'^您本周期的G市交易总结',
                       rule=PRIVATE() & isInUserList([chu_id]))
+G_reset = on_command('投资初始化',
+                     rule=isInUserList(admin_list) & isInBotList([Bank_bot]))
 
 
 @get_G.handle()
@@ -68,11 +71,11 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await savefile()
 
     try:
-        m = [finance[admin_list[0]], finance[admin_list[1]], finance[admin_list[2]], finance[admin_list[3]]]
+        m: list[int] = [finance[admin_list[0]], finance[admin_list[1]], finance[admin_list[2]], finance[admin_list[3]]]
         await set_finance(m)
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += f"\n无形: {m[0]}, 有形: {m[1]}, 跟G: {m[2]}, 抄底: {m[3]}"
+        outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
     except:
         pass
     await send_msg(bot, user_id=notice_id, message=outputStr)
@@ -104,3 +107,9 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     if bot.self_id == str(GBot):
         await send_msg(bot, user_id=chu_id, message='!测G')
     await matcher.finish()
+
+
+@G_reset.handle()
+async def handle(mather: Matcher, bot: Bot):
+    await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await mather.finish()
