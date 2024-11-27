@@ -1,6 +1,12 @@
-# 蕾米球Bot重生
+# 蕾米球Bot
 
-本bot为扫地机自用bot，只是用仓库来管理。
+名为"蕾米球"的QQBot，采用Python编写，基于NoneBot2构建。
+
+蕾米球当前在以下项目的基础上构建：
+
+https://github.com/nonebot/nonebot2
+
+https://github.com/NapNeko/NapCatQQ
 
 ## 插件介绍
 
@@ -12,8 +18,10 @@ auto_G: 生草系统银行、测G相关
 
 params: 自己写的各种方便写代码的函数
 
-## 备注
+## 声明
 
-生草系统为小石子的bot的除草器的系统
+本项目仅供学习交流使用，不得用于非法用途。
 
-除草器: 
+## 友链
+
+小石子的除草器bot(生草系统): https://github.com/BouncyKoishi/ChuCaoQi-Bot
