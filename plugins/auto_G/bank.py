@@ -26,6 +26,7 @@ ceg_group_id = 738721109
 test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 bot_bank = 3584213919
+bank_total_storage = 0
 
 investigate_list = {}
 
@@ -74,6 +75,7 @@ except:
         'user': {},
         'bank': {
             'finance': [0, 0, 0, 0],
+            'total_storage': 0
         }
     }
     user_data = data_raw['user']
@@ -103,6 +105,8 @@ async def init_user(uid: str):
 
 
 async def update_kusa():
+    global bank_total_storage
+    bank_total_storage = 0
     for uid in user_data:
         data = user_data[uid]
         # 产生利息
@@ -118,6 +122,7 @@ async def update_kusa():
                 await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={uid} kusa={num}')
                 await send_msg(bot_bank, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
                 data['kusa'] -= num
+        bank_total_storage += data['kusa']
     await savefile()
 
 
@@ -487,6 +492,13 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     await matcher.finish()
 
 
+async def get_user_ratio(user_id: int) -> float:
+    if user_id in admin_list:
+        return 1.0
+    uid = str(user_id)
+    return (user_data[uid]['kusa'] - user_data[uid]['kusa_new']) / bank_data['total_storage']
+
+
 @bank_ratio.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
     await send_msg2(event, """
@@ -517,6 +529,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 草审批 : 开始审批借草额度
 草借款 num : 自助借草，会立即产生一次利息
 草还款 : 开始还草流程
+G帮助 : 帮帮草行炒G
 """.strip()
     if event.user_id in admin_list:
         msg += '\n\n'
