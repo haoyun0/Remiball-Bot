@@ -76,9 +76,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
 @G_permit.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
     r = await get_user_ratio(event.user_id)
-    r2 = (r * 100) ** 2 / 2 / 100
-    if r2 > 1:
-        r2 = 1.0
+    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
         outputStr = '没有权限'
     else:
@@ -103,9 +101,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 @G_buy_in.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     r = await get_user_ratio(event.user_id)
-    r2 = (r * 100) ** 2 / 2 / 100
-    if r2 > 1:
-        r2 = 1.0
+    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
         await send_msg2(event, '没有权限')
         await matcher.finish()
@@ -141,9 +137,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 @G_sell_out.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     r = await get_user_ratio(event.user_id)
-    r2 = (r * 100) ** 2 / 2 / 100
-    if r2 > 1:
-        r2 = 1.0
+    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
         await send_msg2(event, '没有权限')
         await matcher.finish()
