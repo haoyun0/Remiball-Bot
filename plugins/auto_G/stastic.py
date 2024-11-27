@@ -106,7 +106,7 @@ async def handle():
 
 @G_conclude.handle()
 async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    finance[int(bot.self_id)] = int(re.search(r"本周期盈亏估值：(\d+)草。", arg).group(1))
+    finance[int(bot.self_id)] = int(re.search(r"本周期盈亏估值：(-?\d+)草。", arg).group(1))
     if bot.self_id == str(Bank_bot):
         await send_msg(bot, user_id=chu_id, message='!测G')
     await matcher.finish()
