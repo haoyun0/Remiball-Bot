@@ -1,6 +1,7 @@
 .idea/
 .venv/
 
+plugins/auto_G
 # 本地启动文件
 autokusa启动.lnk
 start.bat
