@@ -450,13 +450,6 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     await matcher.finish()
 
 
-async def set_finance(data: list):
-    global investigate_list
-    bank_data['finance'] = data
-    investigate_list.clear()
-    await savefile()
-
-
 @bank_kusa_update.handle()
 async def handle(matcher: Matcher, event: MessageEvent):
     await update_kusa()
@@ -494,7 +487,31 @@ async def get_user_ratio(user_id: int) -> float:
     if user_id in admin_list:
         return 1.0
     uid = str(user_id)
+    await init_user(uid)
     return (user_data[uid]['kusa'] - user_data[uid]['kusa_new']) / bank_data['total_storage']
+
+
+async def get_user_num() -> int:
+    ans = 0
+    for uid in user_data:
+        if user_data[uid]['kusa'] - user_data[uid]['kusa_new'] > 0:
+            ans += 1
+    return ans
+
+
+async def get_total_storage() -> int:
+    return bank_data['total_storage']
+
+
+async def set_finance(data: list):
+    global investigate_list
+    bank_data['finance'] = data
+    investigate_list.clear()
+    await savefile()
+
+
+async def get_finance() -> int:
+    return bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
 
 
 @bank_ratio.handle()
@@ -528,6 +545,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 草借款 num : 自助借草，会立即产生一次利息
 草还款 : 开始还草流程
 G帮助 : 帮帮草行炒G
+分红 : 获取草行分红
 """.strip()
     if event.user_id in admin_list:
         msg += '\n\n'
