@@ -1,3 +1,4 @@
+import asyncio
 import json
 import re
 from datetime import datetime, timedelta
@@ -6,11 +7,12 @@ from nonebot import require, on_regex, on_command
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
-    Bot
+    Bot,
+    GroupMessageEvent
 )
 from ..params.message_api import send_msg
-from ..params.rule import isInUserList, isInBotList, PRIVATE
-from .bank import set_finance
+from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
+from .bank import set_finance, update_kusa
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
@@ -18,7 +20,6 @@ chu_id = 3056318700
 ceg_group_id = 738721109
 test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
-GBot = 3345744507
 notice_id = 323690346  # 给谁发通知
 Bank_bot = 3584213919
 target = ['东', '南', '北', '珠海', '深圳']
@@ -37,11 +38,13 @@ async def savefile():
 
 
 get_G = on_regex(r'^G市有风险，炒G需谨慎！\n.*?\n?当前G值为：\n东校区',
-                 rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]))
+                 rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]))
 G_conclude = on_regex(r'^您本周期的G市交易总结',
                       rule=PRIVATE() & isInUserList([chu_id]))
-G_reset = on_command('投资初始化',
+M_reset = on_command('投资初始化',
                      rule=isInUserList(admin_list) & isInBotList([Bank_bot]))
+G_reset = on_regex(r'^上周期的G神为',
+                   rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]) & isInBotList(admin_list))
 
 
 @get_G.handle()
@@ -104,12 +107,48 @@ async def handle():
 @G_conclude.handle()
 async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     finance[int(bot.self_id)] = int(re.search(r"本周期盈亏估值：(\d+)草。", arg).group(1))
-    if bot.self_id == str(GBot):
+    if bot.self_id == str(Bank_bot):
         await send_msg(bot, user_id=chu_id, message='!测G')
     await matcher.finish()
 
 
-@G_reset.handle()
+@M_reset.handle()
 async def handle(mather: Matcher, bot: Bot):
-    await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await send_msg(bot, group_id=test_group_id, message='/集资')
+    await asyncio.sleep(10)
+    _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
+                 rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]),
+                 expire_time=datetime.now() + timedelta(seconds=5))
+    await send_msg(bot, user_id=chu_id, message='!仓库')
     await mather.finish()
+
+
+@G_reset.handle()
+async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str = EventPlainText()):
+    if 'Tokens' in arg:
+        await matcher.finish()
+    await send_msg(bot, user_id=chu_id, message='!G卖出 all')
+    if bot.self_id == str(Bank_bot):
+        await update_kusa()
+        await send_msg(bot, group_id=test_group_id, message='/集资')
+        await asyncio.sleep(10)
+        _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
+                     rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]),
+                     expire_time=datetime.now() + timedelta(seconds=5))
+        await send_msg(bot, user_id=chu_id, message='!仓库')
+    else:
+        await send_msg(bot, user_id=chu_id, message='!交易总结')
+    await matcher.finish()
+
+
+async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+    kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
+    gift = kusa // 4
+    # 银行流动资金
+    for uid in admin_list:
+        if uid != Bank_bot:
+            await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
+    await send_msg(bot, user_id=chu_id, message='!交易总结')
+    await asyncio.sleep(10)
+    await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await matcher.finish()

@@ -26,7 +26,6 @@ ceg_group_id = 738721109
 test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 bot_bank = 3584213919
-GBot_list = [847360401, 3584213919, 3345744507]
 
 investigate_list = {}
 
