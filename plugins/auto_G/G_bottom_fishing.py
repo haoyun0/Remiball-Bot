@@ -96,37 +96,8 @@ async def savefile():
         s.write(json.dumps(data))
 
 
-async def G_send_msg(i: int, buy: bool, num: int, times: int = 1):
-    t_flag = True
-    if i < 2:
-        bot: Bot = get_bot(str(GBot_list[0]))
-    elif i < 4:
-        bot: Bot = get_bot(str(GBot_list[1]))
-    else:
-        bot: Bot = get_bot(str(GBot_list[2]))
-        t_flag = False
-    bot2: Bot = get_bot(str(GBot_list[2]))
-    await asyncio.sleep(2)
-    if buy:
-        if t_flag:
-            await bot2.send_private_msg(user_id=chu_id,
-                                        message=f'!草转让 qq={bot.self_id} kusa={round(data["invest"] / divide * times)}')
-            await asyncio.sleep(2)
-        await bot.send_private_msg(user_id=chu_id,
-                                   message=f'!G买入 {target[i][0]} {num}')
-    else:
-        await bot.send_private_msg(user_id=chu_id,
-                                   message=f'!G卖出 {target[i][0]} {num}')
-        if t_flag:
-            await asyncio.sleep(2)
-            await bot.send_private_msg(user_id=chu_id,
-                                       message=f'!草转让 qq={GBot_list[2]} kusa={round(data["invest"] / divide * times)}')
-
-
 @get_G.handle()
 async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    if 'Tokens' in arg:
-        await matcher.finish()
     try:
         turn_new = int(arg[arg.index('当前为本周期第') + 7: arg.index('期数值')])
     except:

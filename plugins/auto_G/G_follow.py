@@ -8,7 +8,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 from ..params.message_api import send_msg
 from ..params.rule import isInUserList, PRIVATE, isInBotList
-from .get_G import get_G_data
+from .stastic import get_G_data
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
