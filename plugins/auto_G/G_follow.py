@@ -53,11 +53,11 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
     tot = 0
     c = [0, 0, 0, 0, 0]
     for i in range(5):
-        x = re.search(rf"G\({target[i]}校区\) \* (\d+)")
+        x = re.search(rf"G\({target[i]}校区\) \* (\d+)", arg)
         if x is not None:
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
-    if tot < 100000000:
+    if tot < 10000000:
         c = [1, 1, 1, 1, 1]
         tot = 5
     for i in range(5):

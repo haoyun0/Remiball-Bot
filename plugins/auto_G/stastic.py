@@ -75,7 +75,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
     try:
         m: list[int] = [finance[admin_list[0]], finance[admin_list[1]], finance[admin_list[2]], finance[admin_list[3]]]
-        await set_finance(m)
+        await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
         outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
