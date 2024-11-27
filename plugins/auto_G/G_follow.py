@@ -37,14 +37,13 @@ async def handle():
     await send_msg(GBot, user_id=chu_id, message='!仓库')
 
 
-async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
+async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     global my_kusa
-    tmp = arg.index('当前拥有草: ')
-    my_kusa = int(arg[tmp + 7: arg.index('\n', tmp)])
+    my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
 
     _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
                  temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(GBot, user_id=chu_id, message=f'!仓库 qq={follow_id}')
+    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id}')
     await matcher.finish()
 
 
@@ -66,5 +65,5 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
             t = target[i]
             coin = int(my_kusa * c[i] / tot)
             invest = int(coin / G_data[i])
-            await bot.send_private_msg(user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+            await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
     await matcher.finish()
