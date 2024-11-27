@@ -121,7 +121,6 @@ async def update_kusa():
                 await send_msg(bot_G, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
                 data['kusa'] -= num
     await savefile()
-    await asyncio.sleep(1)
 
 
 @bank_user_data.handle()
@@ -315,9 +314,9 @@ async def handle_receive3(matcher: Matcher, event: PrivateMessageEvent, bot: Bot
     uid = r.group(1)
     await init_user(uid)
     await send_msg(bot, user_id=chu_id, message=f'!购买 侦察凭证 1')
-    await asyncio.sleep(1)
     _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]),
-                 temp=True, handlers=[other_storage_handle], state={'user_id': uid})
+                 temp=True, handlers=[other_storage_handle],
+                 state={'user_id': uid}, expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={uid}')
     await matcher.finish()
 
