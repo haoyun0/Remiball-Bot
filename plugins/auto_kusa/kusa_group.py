@@ -45,11 +45,10 @@ with open(file_rank_list, mode="r", encoding='utf-8') as file:
     data_free = json.loads(file.read())
     rank_list = data_free['rank_list']
     my_rank = data_free['my_rank']
-name_origin = {'323690346': '扫地机',
-               '847360401': '南G信徒',
-               '3584213919': '珠G信徒',
-               '3345744507': '深G信徒'}
-name_ban = ['扫地机', '白泽球', '蕾米球', '深G信徒', '珠G信徒', '南G信徒']
+name_origin = {'323690346': '看不见的手',
+               '847360401': '假面骑士',
+               '3584213919': '仿生泪滴',
+               '3345744507': '抄底狂魔'}
 lock_rename = asyncio.Lock()
 
 
@@ -103,11 +102,9 @@ async def handle(matcher: Matcher, arg: str = EventPlainText()):
         name = s[idx + len(pattern): s.index(':')]
         name = re.sub('[​‫‬‭‮]', '', name)
         s = s[s.index(':') + 2:]
-        if len(name) > 3:
-            if name not in name_ban:
-                if not name.isnumeric():
-                    if name not in rank_list:
-                        rank_list.append(name)
+        if 3 < len(name) <= 12:
+            if name not in rank_list:
+                rank_list.append(name)
     with open(file_rank_list, mode="w", encoding='utf-8') as f2:
         f2.write(json.dumps(data_free))
     await matcher.finish()
