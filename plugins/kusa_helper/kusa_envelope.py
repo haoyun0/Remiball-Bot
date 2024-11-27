@@ -65,7 +65,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
     if len(argList) != 1:
         await send_msg2(event, '请在指令参数输入发送的草包个数\n'
                                '发送之后bot将开始等待60s的收款，收款数额即为本次草包总额\n'
-                               '草包将持续15min左右，多余的草会退回原账户')
+                               '草包将持续一小时左右，多余的草会退回原账户')
         await matcher.finish()
     num = int(args)
     if num < 3:
@@ -148,7 +148,7 @@ async def handle():
     expire = []
     for data in envelopes:
         if data['enable']:
-            if datetime.now() - timedelta(minutes=15) > data['startTime']:
+            if datetime.now() - timedelta(minutes=60) > data['startTime']:
                 data['enable'] = False
                 await send_msg(bot_id, user_id=chu_id,
                                message=f"!草转让 qq={data['user']} kusa={data['remain_kusa']}")
