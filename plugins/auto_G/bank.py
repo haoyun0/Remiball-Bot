@@ -26,7 +26,6 @@ ceg_group_id = 738721109
 test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 bot_bank = 3584213919
-bot_G = 3345744507
 GBot_list = [847360401, 3584213919, 3345744507]
 
 investigate_list = {}
@@ -118,7 +117,7 @@ async def update_kusa():
             data['kusa_out'] = 0
             if num > 0:
                 await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={uid} kusa={num}')
-                await send_msg(bot_G, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
+                await send_msg(bot_bank, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
                 data['kusa'] -= num
     await savefile()
 
