@@ -80,6 +80,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
             m[i] = round(m[i] / 1000000)
         outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
     except:
+        await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
     await send_msg(bot, user_id=notice_id, message=outputStr)
     await bank_unfreeze()
