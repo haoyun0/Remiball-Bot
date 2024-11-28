@@ -19,7 +19,8 @@ chu_id = 3056318700
 ceg_group_id = 738721109
 test_group_id = 278660330
 GBot = 3584213919
-follow_id = 3404416744
+follow_id_list = [3404416744, 323690346, 847360401]
+follow_id_num = 0
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 
 target = ['东', '南', '北', '珠海', '深圳']
@@ -40,18 +41,19 @@ async def handle():
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    global my_kusa
+    global my_kusa, follow_id_num
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
+    follow_id_num = 0
 
     _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
                  temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id}')
+    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
     await matcher.finish()
 
 
 async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     G_data = await get_G_data()
-    global my_kusa
+    global my_kusa, follow_id_num
     tot = 0
     c = [0, 0, 0, 0, 0]
     for i in range(5):
@@ -59,13 +61,23 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
         if x is not None:
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
+    for i in range(5):
+        c[i] /= tot
+
     if tot < 10000000:
-        c = [1, 1, 1, 1, 1]
-        tot = 5
+        follow_id_num += 1
+        if follow_id_num < len(follow_id_list):
+            _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
+                         temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
+            await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
+            await matcher.finish()
+        else:
+            c = [0.2, 0.2, 0.2, 0.2, 0.2]
+
     for i in range(5):
         if c[i] > 0:
             t = target[i]
-            coin = int(my_kusa * c[i] / tot)
+            coin = int(my_kusa * c[i])
             invest = int(coin / G_data[i])
             await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
     await matcher.finish()
