@@ -109,10 +109,13 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await send_msg2(event, '没有闲草')
         await matcher.finish()
 
+    args = arg.extract_plain_text().strip().split()
+    d = len(args)
+    if d > 10:
+        await send_msg2(event, '操作过多')
+        await matcher.finish()
     async with lock_operate:
         G = await get_G_data()
-        args = arg.extract_plain_text().strip().split()
-        d = len(args)
         c = int(G_data["kusa"] * r2 / d)
 
         outputStr = f"[CQ:at,qq={event.user_id}]控制结果:"

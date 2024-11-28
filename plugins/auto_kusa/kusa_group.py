@@ -46,7 +46,7 @@ with open(file_rank_list, mode="r", encoding='utf-8') as file:
     rank_list = data_free['rank_list']
     my_rank = data_free['my_rank']
 name_origin = {'323690346': '看不见的手',
-               '847360401': '假面骑士',
+               '847360401': '提线木偶',
                '3584213919': '仿生泪滴',
                '3345744507': '抄底狂魔'}
 lock_rename = asyncio.Lock()
