@@ -53,6 +53,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
 
 async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     G_data = await get_G_data()
+    kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     global my_kusa, follow_id_num
     tot = 0
     c = [0, 0, 0, 0, 0]
@@ -62,7 +63,7 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
 
-    if tot < 10000000:
+    if tot / (tot + kusa) < 0.3:
         follow_id_num += 1
         if follow_id_num < len(follow_id_list):
             _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
