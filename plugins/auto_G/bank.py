@@ -492,6 +492,7 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     outputStr = f'用户{uid}:'
     outputStr += f'\n在草行的存款为{data["kusa"]}草' if data['kusa'] > 0 else '\n在草行没有存款'
     outputStr += f'\n其中，有{data["kusa_new"]}草是新存入的' if data['kusa_new'] > 0 else ''
+    outputStr += f'\n上期存款为{data["last_kusa"]}草'
     outputStr += f'\n在草行的欠款为{data["loan"]}草' if data['loan'] > 0 else '\n在草行没有欠款'
     outputStr += f'\n已预约取出{data["kusa_out"]}草' if data['kusa_out'] > 0 else ''
     await send_msg2(event, outputStr)

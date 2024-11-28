@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import require, on_regex, on_command
+from nonebot import require, on_regex, on_command, logger
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -80,7 +80,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
             m[i] = round(m[i] / 1000000)
         outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
     except:
-        pass
+        logger.error(f'更新盈亏失败#{len(finance)}')
     await send_msg(bot, user_id=notice_id, message=outputStr)
 
     await matcher.finish()

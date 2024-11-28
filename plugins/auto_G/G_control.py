@@ -44,6 +44,7 @@ except:
         "own": [0, 0, 0, 0, 0],
         "kusa": 0
     }
+operate_data = {}
 
 
 async def savefile():
@@ -100,6 +101,10 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @G_buy_in.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if event.user_id not in operate_data:
+        operate_data[event.user_id] = 1
+    else:
+        operate_data[event.user_id] += 1
     r = await get_user_ratio(event.user_id)
     r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
@@ -111,8 +116,11 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 
     args = arg.extract_plain_text().strip().split()
     d = len(args)
-    if d > 10:
+    if d > 6:
         await send_msg2(event, '操作过多')
+        await matcher.finish()
+    if operate_data[event.user_id] > 10:
+        await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
     async with lock_operate:
         G = await get_G_data()
@@ -139,10 +147,17 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 
 @G_sell_out.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if event.user_id not in operate_data:
+        operate_data[event.user_id] = 1
+    else:
+        operate_data[event.user_id] += 1
     r = await get_user_ratio(event.user_id)
     r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
         await send_msg2(event, '没有权限')
+        await matcher.finish()
+    if operate_data[event.user_id] > 10:
+        await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
 
     async with lock_operate:
