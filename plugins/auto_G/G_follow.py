@@ -61,8 +61,6 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
         if x is not None:
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
-    for i in range(5):
-        c[i] /= tot
 
     if tot < 10000000:
         follow_id_num += 1
@@ -72,7 +70,10 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
             await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
             await matcher.finish()
         else:
-            c = [0.2, 0.2, 0.2, 0.2, 0.2]
+            c = [0, 0, 0, 0, 0]
+    else:
+        for i in range(5):
+            c[i] /= tot
 
     for i in range(5):
         if c[i] > 0:

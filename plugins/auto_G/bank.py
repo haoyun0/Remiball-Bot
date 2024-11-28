@@ -616,7 +616,8 @@ async def bank_freeze():
 
 async def bank_unfreeze():
     global freeze_flag
-    freeze_flag -= 1
+    if freeze_flag > 0:
+        freeze_flag -= 1
 
 
 @cnt_divvy.handle()
