@@ -50,6 +50,7 @@ name_origin = {'323690346': '看不见的手',
                '3584213919': '仿生泪滴',
                '3345744507': '抄底狂魔'}
 lock_rename = asyncio.Lock()
+lock_send = asyncio.Lock()
 
 
 @gather.handle()
@@ -67,7 +68,8 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     tmp = arg.index('当前拥有草: ')
     kusa = int(arg[tmp + 7: arg.index('\n', tmp)])
     if kusa > 1000000:
-        await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={gather_account} kusa={kusa - 1000000}")
+        async with lock_send:
+            await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={gather_account} kusa={kusa - 1000000}")
     items = arg[arg.index('当前道具：\n') + 6:]
     lmax = len(items)
     for item in gather_items:
@@ -78,7 +80,8 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
             while i < lmax and items[i].isnumeric():
                 num = num * 10 + int(items[i])
                 i += 1
-            await send_msg(bot, user_id=chu_id, message=f"!转让 qq={gather_account} {item} {num}")
+            async with lock_send:
+                await send_msg(bot, user_id=chu_id, message=f"!转让 qq={gather_account} {item} {num}")
     await matcher.finish()
 
 
