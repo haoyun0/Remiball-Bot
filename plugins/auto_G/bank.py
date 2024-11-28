@@ -607,7 +607,7 @@ async def get_finance() -> int:
     return bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
 
 
-async def is_freeze() -> bool:
+def is_freeze() -> bool:
     return freeze_flag > 0
 
 
