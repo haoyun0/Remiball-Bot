@@ -27,6 +27,7 @@ test_group_id = 278660330
 admin_list = [323690346, 847360401, 3584213919, 3345744507]
 bot_bank = 3584213919
 
+freeze_flag = 0
 lock_divvy = asyncio.Lock()
 investigate_list = {}
 
@@ -64,6 +65,8 @@ bank_loan_add = on_command('草记账',
                            rule=isInBotList([bot_bank]) & isInUserList(admin_list))
 bank_loan_del = on_command('草销账',
                            rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+bank_freeze = on_command('草维护',
+                         rule=isInBotList([bot_bank]) & isInUserList(admin_list))
 bank_kusa_update = on_command('草结算',
                               rule=isInBotList([bot_bank]) & isInUserList(admin_list))
 # 并非指令
@@ -133,6 +136,14 @@ async def update_kusa():
                 data['kusa'] -= num
         bank_data['total_storage'] += data['kusa']
     await savefile()
+    if bank_data["divvy_total"] > 0:
+        outputStr = f'草行发出了{bank_data["divvy_total"]}草的分红，记得来草行领取哦^ ^\n'
+        for uid in user_data:
+            if user_data[uid]['kusa'] / bank_data['total_storage'] > 0.1:
+                outputStr += f"[CQ:at,qq={uid}]"
+        await send_msg(bot_bank, group_id=ceg_group_id,
+                       message=outputStr)
+    await bank_unfreeze()
 
 
 @bank_user_data.handle()
@@ -151,6 +162,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @bank_user_store.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
@@ -163,6 +177,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @bank_user_take.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     arg: str = arg.extract_plain_text().strip()
@@ -184,6 +201,9 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 
 @bank_user_take_more.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     arg: str = arg.extract_plain_text().strip()
@@ -202,6 +222,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
 
 @bank_earn.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     async with lock_conclude:
         s = bank_data['finance'].copy()
         s.sort()
@@ -226,6 +249,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @bank_user_judge.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     arg: str = arg.extract_plain_text().strip()
     uid = event.get_user_id()
     await init_user(uid)
@@ -248,6 +274,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
 
 @bank_user_loan.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     if user_data[uid]['loan_amount'] == 0:
@@ -271,6 +300,9 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 
 @bank_user_repayment.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     if user_data[uid]['loan'] == 0:
@@ -400,6 +432,9 @@ async def handle_give_loan(matcher: Matcher, event: PrivateMessageEvent, bot: Bo
 
 @get_divvy.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     async with lock_divvy:
         m = bank_data['divvy_total']
         if m == 0:
@@ -501,8 +536,9 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
 
 @bank_kusa_update.handle()
 async def handle(matcher: Matcher, event: MessageEvent):
-    await update_kusa()
-    await send_msg2(event, "周期结算结束")
+    # await update_kusa()
+    # await send_msg2(event, "周期结算结束")
+    await send_msg2(event, "不能使用")
     await matcher.finish()
 
 
@@ -529,6 +565,18 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
         user_data[uid]['loan'] = 0
     await savefile()
     await send_msg2(event, f'给用户{uid}销账{kusa}成功')
+    await matcher.finish()
+
+
+@bank_freeze.handle()
+async def handle(matcher: Matcher, event: MessageEvent):
+    if is_freeze():
+        outputStr = '解除草行维护状态'
+        await bank_unfreeze()
+    else:
+        outputStr = '开始草行维护'
+        await bank_freeze()
+    await send_msg2(event, outputStr)
     await matcher.finish()
 
 
@@ -559,15 +607,29 @@ async def get_finance() -> int:
     return bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
 
 
+async def is_freeze() -> bool:
+    return freeze_flag > 0
+
+
+async def bank_freeze():
+    global freeze_flag
+    freeze_flag += 1
+
+
+async def bank_unfreeze():
+    global freeze_flag
+    freeze_flag -= 1
+
+
 @cnt_divvy.handle()
-async def handle(matcher: Matcher, bot: Bot):
+async def handle(matcher: Matcher):
+    await bank_freeze()
     async with lock_divvy:
         bank_data['divvy_total'] = 0
         m = await get_finance()
         n = bank_data['total_storage']
         if m / n > 0.1:
             bank_data['divvy_total'] = int(0.1 * m)
-            await send_msg(bot, group_id=ceg_group_id, message=f'草行发出了{bank_data["divvy_total"]}草的分红，记得来草行领取哦^ ^')
         bank_data['divvy'] = bank_data['divvy_total']
         bank_data['divvy_user_list'].clear()
         await savefile()

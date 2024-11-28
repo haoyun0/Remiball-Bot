@@ -10,6 +10,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg
 from ..params.rule import isInUserList, PRIVATE, isInBotList
 from .stastic import get_G_data
+from .bank import bank_freeze
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
@@ -32,6 +33,7 @@ async def handle():
 
 @scheduler.scheduled_job('cron', minute='29,59', second=20)
 async def handle():
+    await bank_freeze()
     _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
                  temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(GBot, user_id=chu_id, message='!仓库')

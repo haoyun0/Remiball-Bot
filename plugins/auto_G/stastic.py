@@ -12,7 +12,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 from ..params.message_api import send_msg
 from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
-from .bank import set_finance, update_kusa
+from .bank import set_finance, update_kusa, bank_unfreeze
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
@@ -82,6 +82,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     except:
         logger.error(f'更新盈亏失败#{len(finance)}')
     await send_msg(bot, user_id=notice_id, message=outputStr)
+    await bank_unfreeze()
 
     await matcher.finish()
 

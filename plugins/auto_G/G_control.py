@@ -14,7 +14,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
 from .stastic import get_G_data
-from .bank import get_user_ratio
+from .bank import get_user_ratio, is_freeze
 
 chu_id = 3056318700
 GBot = 847360401
@@ -76,6 +76,9 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
 
 @G_permit.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     r = await get_user_ratio(event.user_id)
     r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
     if r2 < 0.01:
@@ -88,6 +91,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @G_hold_on.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     G = await get_G_data()
     outputStr = f'空闲的草: {G_data["kusa"]}'
     outputStr += '\n拥有的G:'
@@ -101,6 +107,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 
 @G_buy_in.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     if event.user_id not in operate_data:
         operate_data[event.user_id] = 1
     else:
@@ -147,6 +156,9 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 
 @G_sell_out.handle()
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if is_freeze():
+        await send_msg2(event, '草行维护中，暂时不能操作')
+        await matcher.finish()
     if event.user_id not in operate_data:
         operate_data[event.user_id] = 1
     else:
