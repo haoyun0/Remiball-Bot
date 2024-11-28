@@ -369,7 +369,7 @@ async def handle_give_kusa(matcher: Matcher, event: PrivateMessageEvent, bot: Bo
     if not isReceiveValid(event.message_id):
         await matcher.finish()
     uid = state['uid']
-    if arg == '转让成功！':
+    if '转让成功' in arg:
         user_data[uid]['kusa'] -= state['kusa']
         if state['kusa'] <= user_data[uid]['kusa_new']:
             user_data[uid]['kusa_new'] -= state['kusa']
@@ -389,7 +389,7 @@ async def handle_give_loan(matcher: Matcher, event: PrivateMessageEvent, bot: Bo
     if not isReceiveValid(event.message_id):
         await matcher.finish()
     uid = state['uid']
-    if arg == '转让成功！':
+    if '转让成功' in arg:
         user_data[uid]['loan'] += int(state['kusa'] * 1.01)
         await savefile()
         await send_msg(bot, group_id=ceg_group_id, message=f"[CQ:at,qq={uid}]借草{state['kusa']}成功")
