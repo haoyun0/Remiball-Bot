@@ -40,8 +40,8 @@ except:
         "total_times": 0,
         "kusa_once": 0
     }
-divide = 10
-init_times = 6
+divide = 20
+init_times = 15
 
 
 async def savefile():
