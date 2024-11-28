@@ -123,6 +123,7 @@ async def update_kusa():
         # 产生利息
         num = data['kusa'] - data['kusa_new']
         data['last_kusa'] = num
+        bank_data['total_storage'] += num
         if num > 0:
             data['kusa'] += int(num * 0.006)
         data['kusa_new'] = 0
@@ -134,7 +135,6 @@ async def update_kusa():
                 await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={uid} kusa={num}')
                 await send_msg(bot_bank, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
                 data['kusa'] -= num
-        bank_data['total_storage'] += data['kusa']
     await savefile()
     if bank_data["divvy_total"] > 0:
         outputStr = f'草行发出了{bank_data["divvy_total"]}草的分红，记得来草行领取哦^ ^\n'
@@ -453,16 +453,14 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 
         bank_data['divvy_user_list'].append(event.user_id)
         n = await get_user_num()
-        kusa = random.randint(0, int(0.4 * m / n))
+        kusa = random.randint(1, int(0.2 * m / n))
         r = await get_user_ratio(event.user_id)
-        outputStr = f'[CQ:at,qq={event.get_user_id()}]\n'
+        outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包\n'
         if r > 0:
             r2 = max(min(max((r * 100) ** 2 / 4 / 100, r * 4), 1.0), 0.01)
-            kusa += random.randint(0, int(0.2 * m * r2))
+            kusa += random.randint(int(0.02 * m * r2), int(0.3 * m * r2))
             outputStr += (f'尊贵的股东{event.user_id}:\n'
-                          f'您获得了{kusa}草的分红')
-        else:
-            outputStr += f'你获得了{kusa}草的草包'
+                          f'您额外获得了{kusa}草的分红')
         bank_data['divvy'] -= kusa
         await send_msg(bot, user_id=chu_id, message=f'!草转让 qq={event.user_id} kusa={kusa}')
         await send_msg2(event, outputStr)
