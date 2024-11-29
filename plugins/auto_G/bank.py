@@ -455,12 +455,12 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
         n = await get_user_num()
         kusa = random.randint(1, int(0.2 * m / n))
         r = await get_user_ratio(event.user_id)
-        outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包\n'
+        outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
         if r > 0:
             r2 = max(min(max((r * 100) ** 2 / 4 / 100, r * 4), 1.0), 0.01)
             red = random.randint(int(0.02 * m * r2), int(0.3 * m * r2))
-            outputStr += (f'尊贵的股东{event.user_id}:\n'
-                          f'您额外获得了{red}草的分红')
+            outputStr += (f'\n尊贵的股东{event.user_id}:'
+                          f'\n您额外获得了{red}草的分红')
             kusa += red
         bank_data['divvy'] -= kusa
         await send_msg(bot, user_id=chu_id, message=f'!草转让 qq={event.user_id} kusa={kusa}')
