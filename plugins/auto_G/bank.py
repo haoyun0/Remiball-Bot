@@ -587,6 +587,14 @@ async def get_user_ratio(user_id: int) -> float:
     return user_data[uid]['last_kusa'] / bank_data['total_storage']
 
 
+async def get_user_true_kusa(user_id: int) -> int:
+    if user_id in admin_list:
+        return bank_data['total_storage']
+    uid = str(user_id)
+    await init_user(uid)
+    return user_data[uid]['kusa'] - user_data[uid]['kusa_new']
+
+
 async def get_user_num() -> int:
     ans = 0
     for uid in user_data:

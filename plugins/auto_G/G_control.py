@@ -3,7 +3,7 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import on_command, on_regex
+from nonebot import on_command, on_regex, require
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText, CommandArg
 from nonebot.adapters.onebot.v11 import (
@@ -14,7 +14,10 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
 from .stastic import get_G_data
-from .bank import get_user_ratio, is_freeze
+from .bank import get_user_true_kusa, is_freeze
+from nonebot_plugin_apscheduler import scheduler
+
+require("nonebot_plugin_apscheduler")
 
 chu_id = 3056318700
 GBot = 847360401
@@ -74,17 +77,21 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     await matcher.finish()
 
 
+@scheduler.scheduled_job('cron', minute='29,59', second=50)
+async def handle():
+    operate_data.clear()
+
+
 @G_permit.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    r = await get_user_ratio(event.user_id)
-    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
-    if r2 < 0.01:
+    m = await get_user_true_kusa(event.user_id)
+    if m < 10000000:
         outputStr = '没有权限'
     else:
-        outputStr = f'您每次可以控制{round(r2 * 100, 1)}%的资本'
+        outputStr = f'您每次最多可以控制{m}草的G'
     await send_msg2(event, outputStr)
     await matcher.finish()
 
@@ -110,30 +117,22 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    if event.user_id not in operate_data:
-        operate_data[event.user_id] = 1
-    else:
-        operate_data[event.user_id] += 1
-    r = await get_user_ratio(event.user_id)
-    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
-    if r2 < 0.01:
+    m = await get_user_true_kusa(event.user_id)
+    if m < 10000000:
         await send_msg2(event, '没有权限')
         await matcher.finish()
     if G_data["kusa"] < 1000000:
         await send_msg2(event, '没有闲草')
         await matcher.finish()
-
-    args = arg.extract_plain_text().strip().split()
-    d = len(args)
-    if d > 6:
-        await send_msg2(event, '操作过多')
-        await matcher.finish()
-    if operate_data[event.user_id] > 10:
+    if not check_operate(event.user_id):
         await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
     async with lock_operate:
         G = await get_G_data()
-        c = int(G_data["kusa"] * r2 / d)
+        args = arg.extract_plain_text().strip().split()
+        n = len(args)
+        k = 0
+        operate = {}
 
         outputStr = f"[CQ:at,qq={event.user_id}]控制结果:"
         for x in args:
@@ -144,12 +143,24 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
                 outputStr += f'\n字符"{x}"识别失败'
                 continue
             t = target[i]
-            invest = int(c // G[i])
-            await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
-            G_data['own'][i] += invest
-            G_data['kusa'] -= int(invest * G[i])
-            outputStr += f'\n买入{int(invest * G[i])}草{t[0]}G成功'
-        await savefile()
+            if t in operate:
+                operate[t] += 1
+            else:
+                operate[t] = 1
+            k += 1
+
+        if len(operate) > 0:
+            c = int(G_data['kusa'] / n)
+            for t in operate:
+                i = target.index(t)
+                m2 = int(m * operate[t] / k)
+                c2 = min(m2, c)
+                invest = int(c2 / G[i])
+                await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+                G_data['own'][i] += invest
+                G_data['kusa'] -= int(invest * G[i])
+                outputStr += f'\n买入{int(invest * G[i])}草{t[0]}G成功'
+            await savefile()
         await send_msg2(event, outputStr)
     await matcher.finish()
 
@@ -159,22 +170,19 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    if event.user_id not in operate_data:
-        operate_data[event.user_id] = 1
-    else:
-        operate_data[event.user_id] += 1
-    r = await get_user_ratio(event.user_id)
-    r2 = min(max((r * 100) ** 2 / 2 / 100, r * 5), 1.0)
-    if r2 < 0.01:
+    m = await get_user_true_kusa(event.user_id)
+    if m < 10000000:
         await send_msg2(event, '没有权限')
         await matcher.finish()
-    if operate_data[event.user_id] > 10:
+    if not check_operate(event.user_id):
         await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
 
     async with lock_operate:
         G = await get_G_data()
         args = arg.extract_plain_text().strip().split()
+        k = 0
+        operate = {}
 
         outputStr = f"[CQ:at,qq={event.user_id}]控制结果:"
         for x in args:
@@ -185,18 +193,36 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
                 outputStr += f'\n字符"{x}"识别失败'
                 continue
             t = target[i]
-            invest = int(G_data['own'][i] * r2)
-            if invest == 0:
-                outputStr += f'\n不持有或{t[0]}G过少'
+            if G_data['own'][i] == 0:
+                outputStr += f'\n不持有{t[0]}G'
                 continue
-            c = int(G[i] * invest)
-            await send_msg(bot, user_id=chu_id, message=f'!G卖出 {t[0]} {invest}')
-            G_data['own'][i] -= invest
-            G_data['kusa'] += c
-            outputStr += f'\n卖出{c}草{t[0]}G成功'
-        await savefile()
+            if t in operate:
+                operate[t] += 1
+            else:
+                operate[t] = 1
+            k += 1
+
+        if len(operate) > 0:
+            for t in operate:
+                i = target.index(t)
+                m2 = int(m * operate[t] / k)
+                c = int(G[i] * G_data['own'][i])
+                invest = G_data['own'][i] if c <= m2 else int(m2 / G[i])
+                await send_msg(bot, user_id=chu_id, message=f'!G卖出 {t[0]} {invest}')
+                G_data['own'][i] -= invest
+                G_data['kusa'] += int(invest * G[i])
+                outputStr += f'\n卖出{int(invest * G[i])}草{t[0]}G成功'
+            await savefile()
         await send_msg2(event, outputStr)
     await matcher.finish()
+
+
+def check_operate(uid: int) -> bool:
+    if uid not in operate_data:
+        operate_data[uid] = 1
+    else:
+        operate_data[uid] += 1
+    return operate_data[uid] <= 10
 
 
 @G_help.handle()

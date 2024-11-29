@@ -105,7 +105,7 @@ async def handle():
     await asyncio.gather(
         send_msg(admin_list[0], user_id=chu_id, message='!交易总结'),
         send_msg(admin_list[1], user_id=chu_id, message='!交易总结'),
-        send_msg(admin_list[4], user_id=chu_id, message='!交易总结')
+        send_msg(admin_list[3], user_id=chu_id, message='!交易总结')
     )
     await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
 
