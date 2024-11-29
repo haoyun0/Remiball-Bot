@@ -1,4 +1,4 @@
-from nonebot import on_command
+from nonebot import on_command, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import (
@@ -6,9 +6,12 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent
 )
 from ..params.message_api import send_msg2
-from ..params.rule import isInBotList, GROUP
+from ..params.rule import isInBotList, Message_select_group
+from .config import Config
 
-overload_count = on_command('过载计算', rule=isInBotList([3584213919]) & GROUP())
+plugin_config = Config.parse_obj(get_driver().config)
+
+overload_count = on_command('过载计算', rule=isInBotList([plugin_config.bot_main]) & Message_select_group(plugin_config.group_id_kusa))
 
 
 async def differ(num: int):

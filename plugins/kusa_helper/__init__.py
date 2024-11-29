@@ -1,7 +1,8 @@
+from nonebot.plugin import PluginMetadata
+
 from .overload import overload_count
 from .kusa_envelope import handout
 from .lianhao import lianhao_count
-from nonebot.plugin import PluginMetadata
 
 __plugin_meta__ = PluginMetadata(
     name='生草系统助手',
