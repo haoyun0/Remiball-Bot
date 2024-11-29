@@ -40,14 +40,14 @@ name_list = on_command('改名列表', aliases={'假面列表', '面具列表'},
                        rule=isInBotList([bot_main]), permission=SUPERUSER)
 
 file_rank_list = 'C:/data/rank_list.txt'
-is_rename_to_other = {str(plugin_config.bot_G0): False,
-                      str(plugin_config.bot_G1): False,
-                      str(plugin_config.bot_G2): False,
-                      str(plugin_config.bot_G3): False}
-name_origin = {str(plugin_config.bot_G1): '看不见的手',
-               str(plugin_config.bot_G2): '提线木偶',
-               str(plugin_config.bot_G0): '仿生泪滴',
-               str(plugin_config.bot_G3): '抄底狂魔'}
+is_rename_to_other = {str(plugin_config.bot_g0): False,
+                      str(plugin_config.bot_g1): False,
+                      str(plugin_config.bot_g2): False,
+                      str(plugin_config.bot_g3): False}
+name_origin = {str(plugin_config.bot_g1): '看不见的手',
+               str(plugin_config.bot_g2): '提线木偶',
+               str(plugin_config.bot_g0): '仿生泪滴',
+               str(plugin_config.bot_g3): '抄底狂魔'}
 with open(file_rank_list, mode="r", encoding='utf-8') as file:
     data_free = json.loads(file.read())
     rank_list = data_free['rank_list']

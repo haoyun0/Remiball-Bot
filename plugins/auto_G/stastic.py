@@ -3,26 +3,29 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import require, on_regex, on_command, logger
+from nonebot import require, on_regex, on_command, logger, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
-    GroupMessageEvent
 )
 from ..params.message_api import send_msg
-from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
+from ..params.rule import isInBotList, PRIVATE, Message_select_group
+from ..params.permission import isInUserList, SUPERUSER
 from .bank import set_finance, update_kusa, bank_unfreeze
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
-chu_id = 3056318700
-ceg_group_id = 738721109
-test_group_id = 278660330
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
-notice_id = 323690346  # 给谁发通知
-Bank_bot = 3584213919
+plugin_config = Config.parse_obj(get_driver().config)
+
+chu_id = plugin_config.bot_chu
+ceg_group_id = plugin_config.group_id_kusa
+test_group_id = plugin_config.group_id_test
+notice_id = plugin_config.bot_g1  # 给谁发通知
+Bank_bot = plugin_config.bot_main
 target = ['东', '南', '北', '珠海', '深圳']
+G_bot_list = [plugin_config.bot_g0, plugin_config.bot_g1, plugin_config.bot_g2, plugin_config.bot_g3]
 finance = {}
 
 try:
@@ -38,13 +41,13 @@ async def savefile():
 
 
 get_G = on_regex(r'^G市有风险，炒G需谨慎！\n.*?\n?当前G值为：\n东校区',
-                 rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]))
+                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
 G_conclude = on_regex(r'^您本周期的G市交易总结',
-                      rule=PRIVATE() & isInUserList([chu_id]))
+                      rule=PRIVATE(), permission=isInUserList([chu_id]))
 M_reset = on_command('投资初始化',
-                     rule=isInUserList(admin_list) & isInBotList([Bank_bot]))
+                     rule=isInBotList([Bank_bot]), permission=SUPERUSER)
 G_reset = on_regex(r'^上周期的G神为',
-                   rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]) & isInBotList(admin_list))
+                   rule=Message_select_group(ceg_group_id) & isInBotList(G_bot_list), permission=isInUserList([chu_id]))
 
 
 @get_G.handle()
@@ -74,7 +77,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await savefile()
 
     try:
-        m: list[int] = [finance[admin_list[0]], finance[admin_list[1]], finance[admin_list[2]], finance[admin_list[3]]]
+        m: list[int] = [finance[G_bot_list[0]], finance[G_bot_list[1]], finance[G_bot_list[2]], finance[G_bot_list[3]]]
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
@@ -103,9 +106,9 @@ async def get_G_data():
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
 async def handle():
     await asyncio.gather(
-        send_msg(admin_list[0], user_id=chu_id, message='!交易总结'),
-        send_msg(admin_list[1], user_id=chu_id, message='!交易总结'),
-        send_msg(admin_list[3], user_id=chu_id, message='!交易总结')
+        send_msg(plugin_config.bot_g1, user_id=chu_id, message='!交易总结'),
+        send_msg(plugin_config.bot_g2, user_id=chu_id, message='!交易总结'),
+        send_msg(plugin_config.bot_g3, user_id=chu_id, message='!交易总结')
     )
     await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
 
@@ -123,14 +126,14 @@ async def handle(mather: Matcher, bot: Bot):
     await send_msg(bot, group_id=test_group_id, message='/集资')
     await asyncio.sleep(10)
     _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                 rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]),
+                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(bot, user_id=chu_id, message='!仓库')
     await mather.finish()
 
 
 @G_reset.handle()
-async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str = EventPlainText()):
+async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
     await send_msg(bot, user_id=chu_id, message='!G卖出 all')
@@ -139,7 +142,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str 
         await asyncio.sleep(10)
         await update_kusa()
         _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                     rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([Bank_bot]),
+                     rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
                      expire_time=datetime.now() + timedelta(seconds=5))
         await send_msg(bot, user_id=chu_id, message='!仓库')
     else:
@@ -151,8 +154,8 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     gift = kusa // 4
     # 银行流动资金
-    for uid in admin_list:
-        if uid != Bank_bot:
+    for uid in bot.config.superusers:
+        if uid != str(Bank_bot):
             await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
     await send_msg(bot, user_id=chu_id, message='!交易总结')
     await asyncio.sleep(10)

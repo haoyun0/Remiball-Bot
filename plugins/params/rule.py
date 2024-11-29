@@ -31,19 +31,6 @@ def GROUP() -> Rule:
     return Rule(_isPrivate)
 
 
-def isInUserList(users: list[int]) -> Rule:
-    """
-    触发指令的用户在列表内
-    :param users: list[int]
-    :return: Rule
-    """
-    async def _enable(event: MessageEvent) -> bool:
-        if event.user_id in users:
-            return True
-        return False
-    return Rule(_enable)
-
-
 def isInBotList(bots: list[int]) -> Rule:
     """
     收到事件的Bot的在列表内
