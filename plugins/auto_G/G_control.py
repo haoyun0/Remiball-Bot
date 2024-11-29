@@ -154,7 +154,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
             for t in operate:
                 i = target.index(t)
                 m2 = int(m * operate[t] / k)
-                c2 = min(m2, c)
+                c2 = min(m2, c * operate[t])
                 invest = int(c2 / G[i])
                 await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
                 G_data['own'][i] += invest
