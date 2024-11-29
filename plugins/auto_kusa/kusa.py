@@ -14,8 +14,8 @@ from ..params.rule import PRIVATE, Message_select_group, isInBotList
 from ..params.permission import SUPERUSER, isInUserList
 from .rob import add_rob, refresh_friend_list
 from .kusa_group import update_rank_day, update_rank_once
-from nonebot_plugin_apscheduler import scheduler
 from .config import Config
+from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
 plugin_config = Config.parse_obj(get_driver().config)
