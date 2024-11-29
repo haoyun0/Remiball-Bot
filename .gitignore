@@ -5,3 +5,4 @@ plugins/模拟
 # 本地启动文件
 autokusa启动.lnk
 start.bat
+.env
