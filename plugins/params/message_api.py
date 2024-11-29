@@ -1,6 +1,6 @@
 import asyncio
 from typing import Union
-from nonebot import get_bot, logger
+from nonebot import get_bot, logger, get_driver
 from nonebot.adapters.onebot.v11 import (
     Bot,
     MessageEvent,
@@ -8,11 +8,22 @@ from nonebot.adapters.onebot.v11 import (
     PrivateMessageEvent
 )
 
+from .config import Config
+
+plugin_config = Config.parse_obj(get_driver().config)
 lock_chu: dict[str, asyncio.Lock] = {}
-bot_id_chu = 3056318700
+bot_id_chu = plugin_config.bot_chu
 
 
 async def send_msg(bot: Union[Bot, int, str], message: str, group_id: int = 0, user_id: int = 0):
+    """
+    通用发消息api
+    :param bot: 可为Bot, int, str
+    :param message: 消息内容
+    :param group_id: 如果发群消息，则填群号
+    :param user_id: 如果发私聊消息，则填用户qq号
+    :return: message_id
+    """
     if isinstance(bot, (int, str)):
         try:
             bot: Bot = get_bot(str(bot))
@@ -32,6 +43,7 @@ async def send_msg(bot: Union[Bot, int, str], message: str, group_id: int = 0, u
                 logger.error(f'发送到{user_id}的私聊消息发送失败，消息内容为:\n{message}')
                 return None
         else:
+            # 单纯是为了防止给除草器刷指令
             if bot.self_id not in lock_chu:
                 lock_chu[bot.self_id] = asyncio.Lock()
             async with lock_chu[bot.self_id]:
@@ -45,6 +57,12 @@ async def send_msg(bot: Union[Bot, int, str], message: str, group_id: int = 0, u
 
 
 async def send_msg2(event: MessageEvent, message: str):
+    """
+    通用发消息api，根据事件自动回复
+    :param event: MessageEvent
+    :param message: 消息内容
+    :return: message_id
+    """
     if event.message_type == 'group':
         event: GroupMessageEvent
         bot: Bot = get_bot(str(event.self_id))
