@@ -6,6 +6,11 @@ from nonebot.adapters.onebot.v11 import (
 
 
 def Message_select_group(group_id: int) -> Rule:
+    """
+    只在特定群聊
+    :param group_id: 群号
+    :return: Rule
+    """
     async def _enable(event: MessageEvent) -> bool:
         if event.message_type == 'group':
             if event.group_id == group_id:
@@ -26,15 +31,12 @@ def GROUP() -> Rule:
     return Rule(_isPrivate)
 
 
-def isInUserList(users: list) -> Rule:
-    async def _enable(event: MessageEvent) -> bool:
-        if event.user_id in users:
-            return True
-        return False
-    return Rule(_enable)
-
-
-def isInBotList(bots: list) -> Rule:
+def isInBotList(bots: list[int]) -> Rule:
+    """
+    收到事件的Bot的在列表内
+    :param bots: list[int]
+    :return: Rule
+    """
     async def _enable(event: MessageEvent) -> bool:
         if event.self_id in bots:
             return True

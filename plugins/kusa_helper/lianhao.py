@@ -1,16 +1,19 @@
 import asyncio
 
-from nonebot import on_command
+from nonebot import on_command, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg
 from nonebot.adapters.onebot.v11 import (
     Message,
     GroupMessageEvent
 )
-from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInBotList, GROUP
+from ..params.message_api import send_msg2
+from ..params.rule import isInBotList, Message_select_group
+from .config import Config
 
-lianhao_count = on_command('连号计算', rule=isInBotList([3584213919]) & GROUP())
+plugin_config = Config.parse_obj(get_driver().config)
+
+lianhao_count = on_command('连号计算', rule=isInBotList([plugin_config.bot_main]) & Message_select_group(plugin_config.group_id_kusa))
 lock_lianhao = asyncio.Lock()
 
 
@@ -119,18 +122,3 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         outputStr = help_str
     await send_msg2(event, outputStr)
     await matcher.finish()
-
-
-async def main():
-    for i in range(70000, 120000):
-        ans = await count_one(i)
-        cnt = 0
-        for a in ans:
-            cnt += 3 ** (a[0] - 2) * (a[1] // 3 + 1)
-        if len(ans) > 0:
-            print(i, ans, cnt)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
-    # asyncio.run(count_one(71101))

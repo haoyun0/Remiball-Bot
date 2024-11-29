@@ -3,31 +3,29 @@ import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import on_command, on_regex, require
+from nonebot import on_command, on_regex, require, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import EventPlainText, CommandArg
+from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
-    Message,
-    GroupMessageEvent,
 )
-from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInUserList, isInBotList, PRIVATE, Message_select_group
+from ..params.message_api import send_msg
+from ..params.rule import isInBotList, PRIVATE
+from ..params.permission import SUPERUSER, isInUserList
 from .stastic import get_G_data
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-chu_id = 3056318700
-GBot = 3345744507
-ceg_group_id = 738721109
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
+chu_id = plugin_config.bot_chu
+GBot = plugin_config.bot_g3
 target = ['东', '南', '北', '珠海', '深圳']
 target_change = [0.1, 0.1, 0.08, 0.1, 0.15]
 lock_operate = asyncio.Lock()
 
-invest_reset = on_command('G_reset',
-                          rule=isInUserList(admin_list) & isInBotList([GBot]))
+invest_reset = on_command('G_reset', rule=isInBotList([GBot]), permission=SUPERUSER)
 
 try:
     with open(r'C:/Data/G_bottom_fishing.txt', 'r', encoding='utf-8') as f:
@@ -52,7 +50,8 @@ async def savefile():
 @invest_reset.handle()
 async def handle(matcher: Matcher, bot: Bot):
     await send_msg(bot, user_id=chu_id, message='!G卖出 all')
-    _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(bot, user_id=chu_id, message='!仓库')
     await matcher.finish()

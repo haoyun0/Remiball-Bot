@@ -1,9 +1,9 @@
-from .bank import bank_help
-from .stastic import M_reset
-from .G_follow import admin_list
-from .G_free import invest_reset
-from .G_control import G_help
-from .G_bottom_fishing import invest_reset
+from .bank import plugin_config
+from .stastic import plugin_config
+from .G_follow import plugin_config
+from .G_free import plugin_config
+from .G_control import plugin_config
+from .G_bottom_fishing import plugin_config
 from nonebot.plugin import PluginMetadata
 
 __plugin_meta__ = PluginMetadata(

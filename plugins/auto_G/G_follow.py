@@ -1,27 +1,27 @@
 import re
 from datetime import datetime, timedelta
 
-from nonebot import on_regex, require
+from nonebot import on_regex, require, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot
 )
 from ..params.message_api import send_msg
-from ..params.rule import isInUserList, PRIVATE, isInBotList
+from ..params.rule import PRIVATE, isInBotList
+from ..params.permission import isInUserList
 from .stastic import get_G_data
 from .bank import bank_freeze
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-chu_id = 3056318700
-ceg_group_id = 738721109
-test_group_id = 278660330
-GBot = 3584213919
-follow_id_list = [3404416744, 3345744507, 847360401, 323690346]
+chu_id = plugin_config.bot_chu
+GBot = plugin_config.bot_main
+follow_id_list = [int(x) for x in plugin_config.g_follow_accounts]
 follow_id_num = 0
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
 
 target = ['东', '南', '北', '珠海', '深圳']
 my_kusa = 0
@@ -35,7 +35,8 @@ async def handle():
 @scheduler.scheduled_job('cron', minute='29,59', second=20)
 async def handle():
     await bank_freeze()
-    _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(GBot, user_id=chu_id, message='!仓库')
 
@@ -45,7 +46,8 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     follow_id_num = 0
 
-    _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
     await matcher.finish()
@@ -66,7 +68,8 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
     if tot / (tot + kusa) < 0.3:
         follow_id_num += 1
         if follow_id_num < len(follow_id_list):
-            _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([GBot]),
+            _ = on_regex(r'当前拥有草: \d+\n',
+                         rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
                          temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
             await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
             await matcher.finish()

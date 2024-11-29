@@ -1,7 +1,8 @@
 import random
+import re
 from datetime import datetime, timedelta
 
-from nonebot import on_command, on_regex, require
+from nonebot import on_command, on_regex, require, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -9,15 +10,19 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent,
     Bot
 )
+
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInBotList, GROUP, PRIVATE, isInUserList
+from ..params.rule import isInBotList, GROUP, PRIVATE
+from ..params.permission import isInUserList
 from ..params.kusa_helper import isSubAccount
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
-chu_id = 3056318700
-test_group_id = 278660330
-bot_id = 847360401  # 3584213919
+plugin_config = Config.parse_obj(get_driver().config)
+
+chu_id = plugin_config.bot_chu
+bot_id = plugin_config.bot_main
 handout = on_command('发草包', rule=isInBotList([bot_id]) & GROUP())
 receive = on_command('抢草包', rule=isInBotList([bot_id]) & GROUP())
 
@@ -26,13 +31,8 @@ envelopes = []
 
 async def handle_receive(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     # ({userId})转让了{transferKusa}个草给你！
-    l = len(arg)
-    st = l - 1
-    while arg[st] != '(':
-        st -= 1
-    ed = arg.index(')', st)
-    uid = int(arg[st + 1: ed])
-    kusa_num = int(arg[ed + 4: arg.index('个草给你', ed)])
+    r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
+    uid, kusa_num = r.group(1), int(r.group(2))
     for data in envelopes:
         if not data['enable'] and data['user'] == uid:
             if datetime.now() - timedelta(seconds=60) < data['startTime']:
@@ -79,7 +79,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         'startTime': datetime.now()
     }
     envelopes.append(dic)
-    _ = on_regex(r"\(\d+\)转让了\d+个草给你！", rule=PRIVATE() & isInBotList([bot_id]) & isInUserList([chu_id]),
+    _ = on_regex(r"\(\d+\)转让了\d+个草给你！",
+                 rule=PRIVATE() & isInBotList([bot_id]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive])
     await send_msg2(event, f'请将准备发的草用你的账号发给bot，作为草包总额，限时60s\n\n!草转让 qq={event.self_id} kusa=')
     await matcher.finish()

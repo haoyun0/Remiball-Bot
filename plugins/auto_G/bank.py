@@ -4,7 +4,7 @@ import random
 import re
 from datetime import datetime, timedelta
 
-from nonebot import require, on_command, on_regex
+from nonebot import require, on_command, on_regex, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventPlainText, T_State
 from nonebot.adapters.onebot.v11 import (
@@ -16,24 +16,23 @@ from nonebot.adapters.onebot.v11 import (
 )
 from ..params.message_api import send_msg, send_msg2
 from ..params.kusa_helper import isSubAccount, isReceiveValid
-from ..params.rule import isInUserList, Message_select_group, isInBotList, PRIVATE
+from ..params.rule import Message_select_group, isInBotList, PRIVATE
+from ..params.permission import SUPERUSER, isInUserList
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-chu_id = 3056318700
-ceg_group_id = 738721109
-test_group_id = 278660330
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
-bot_bank = 3584213919
+chu_id = plugin_config.bot_chu
+ceg_group_id = plugin_config.group_id_kusa
+bot_bank = plugin_config.bot_main
 
 freeze_flag = 0
 lock_divvy = asyncio.Lock()
 investigate_list = {}
 
 # 用户指令
-bank_help = on_command('草行',
-                       rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
 bank_ratio = on_command('草利率',
                         rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
 bank_earn = on_command('草盈亏',
@@ -56,22 +55,23 @@ get_divvy = on_command('分红',
                        rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
 # 管理员指令
 bank_kusa_query = on_command('查看草存款',
-                             rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                             rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_loan_query = on_command('查看草贷款',
-                             rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                             rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_query_user = on_command('查看草账户',
-                             rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                             rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_loan_add = on_command('草记账',
-                           rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                           rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_loan_del = on_command('草销账',
-                           rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                           rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_freeze = on_command('草维护',
-                         rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                         rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_kusa_update = on_command('草结算',
-                              rule=isInBotList([bot_bank]) & isInUserList(admin_list))
+                              rule=isInBotList([bot_bank]), permission=SUPERUSER)
 # 并非指令
 cnt_divvy = on_regex('^新的G周期开始了！上个周期的G已经自动兑换为草。$',
-                     rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]) & isInUserList([chu_id]))
+                     rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]),
+                     permission=isInUserList([chu_id]))
 
 try:
     with open(r'C:/Data/bank.txt', 'r', encoding='utf-8') as f:
@@ -168,7 +168,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     uid = event.get_user_id()
     await init_user(uid)
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
-                 rule=PRIVATE() & isInBotList([bot_bank]) & isInUserList([chu_id]), block=True,
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive])
     await send_msg2(event,
                     f'请将存款用你的账号发给bot，不低于1w草，限时60s，每存一笔需要重新触发指令\n\n!草转让 qq={event.self_id} kusa=')
@@ -192,7 +192,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await matcher.finish()
 
     _ = on_regex(rf"^你不够草|^转让成功",
-                 rule=PRIVATE() & isInBotList([bot_bank]) & isInUserList([chu_id]), block=True,
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_kusa],
                  state={'uid': uid, 'kusa': num})
     await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
@@ -265,7 +265,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
                                f'当前额度为{user_data[uid]["loan_amount"]}')
         await matcher.finish()
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了10000个草给你！",
-                 rule=PRIVATE() & isInBotList([bot_bank]) & isInUserList([chu_id]), block=True,
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive3])
     await send_msg2(event, f'审批额度需要交10000草手续费，请复制下述指令交手续费\n'
                            f'\n!草转让 qq={event.self_id} kusa=10000')
@@ -291,7 +291,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await send_msg2(event, '额度不足，若想借草请联系扫地机')
         await matcher.finish()
     _ = on_regex(rf"^你不够草|^转让成功",
-                 rule=PRIVATE() & isInBotList([bot_bank]) & isInUserList([chu_id]), block=True,
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_loan],
                  state={'uid': uid, 'kusa': num})
     await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
@@ -309,7 +309,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
         await send_msg2(event, '您不需要还款')
         await matcher.finish()
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
-                 rule=PRIVATE() & isInBotList([bot_bank]) & isInUserList([chu_id]), block=True,
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive2])
     await send_msg2(event, f'您在草行的欠款为{user_data[uid]["loan"]}草\n'
                            f'请将准备的欠款用你的账号发给bot，不低于1w草每次，限时60s，每还一笔需要重新触发指令，多还的自动存款'
@@ -358,7 +358,8 @@ async def handle_receive3(matcher: Matcher, event: PrivateMessageEvent, bot: Bot
     uid = r.group(1)
     await init_user(uid)
     await send_msg(bot, user_id=chu_id, message=f'!购买 侦察凭证 1')
-    _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]),
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[other_storage_handle],
                  state={'user_id': uid}, expire_time=datetime.now() + timedelta(seconds=5))
     await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={uid}')
@@ -454,7 +455,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
         bank_data['divvy_user_list'].append(event.user_id)
         n = await get_user_num()
         kusa = random.randint(1, int(0.2 * m / n))
-        r = await get_user_ratio(event.user_id)
+        r = await get_user_ratio(bot, event.user_id)
         outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
         if r > 0:
             r2 = max(min(max((r * 100) ** 2 / 4 / 100, r * 4), 1.0), 0.01)
@@ -579,18 +580,18 @@ async def handle(matcher: Matcher, event: MessageEvent):
     await matcher.finish()
 
 
-async def get_user_ratio(user_id: int) -> float:
-    if user_id in admin_list:
-        return 1.0
+async def get_user_ratio(bot: Bot, user_id: int) -> float:
     uid = str(user_id)
+    if uid in bot.config.superusers:
+        return 1.0
     await init_user(uid)
     return user_data[uid]['last_kusa'] / bank_data['total_storage']
 
 
-async def get_user_true_kusa(user_id: int) -> int:
-    if user_id in admin_list:
-        return bank_data['total_storage']
+async def get_user_true_kusa(bot: Bot, user_id: int) -> int:
     uid = str(user_id)
+    if uid in bot.config.superusers:
+        return bank_data['total_storage']
     await init_user(uid)
     return user_data[uid]['kusa'] - user_data[uid]['kusa_new']
 
@@ -656,36 +657,4 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 新存入的草从下下次G周期结算开始计算（强调：下下次），每次结算自动更新存款，也是利滚利形式
 该模式下折合年化利率约107%
 """.strip())
-    await matcher.finish()
-
-
-@bank_help.handle()
-async def handle(matcher: Matcher, event: GroupMessageEvent):
-    msg = """
-草行3.0 重生
-指令列表如下，前面加/
-草行 : 查看该帮助
-草利率 : 查看存草和贷草利率及计算方式
-草盈亏 : 查看本期草行投资盈亏
-草账户 : 查看自己的账户信息
-草存入 : 开始存草流程
-草取出 num: 立即取出草（如果草行还有流动草的话）
-草预约取出 num: 大额取出需要预约，在下次G市重置时取出
-草审批 : 开始审批借草额度
-草借款 num : 自助借草，会立即产生一次利息
-草还款 : 开始还草流程
-G帮助 : 帮帮草行炒G
-分红 : 获取草行分红
-""".strip()
-    if event.user_id in admin_list:
-        msg += '\n\n'
-        msg += """
-管理员指令如下
-查看草存款 : 查看所有用户存款
-查看草贷款 : 查看所有用户贷款
-查看草账户 qq: 查看某用户的账户信息
-草记账 qq num: 给用户贷款记账
-草销账 qq num: 给用户贷款销账
-""".strip()
-    await send_msg2(event, msg)
     await matcher.finish()

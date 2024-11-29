@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from nonebot import on_regex, require, get_bots
+from nonebot import on_regex, require, get_bots, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -8,19 +8,23 @@ from nonebot.adapters.onebot.v11 import (
     MessageEvent,
     Bot
 )
+
 from ..params.message_api import send_msg
-from ..params.rule import isInUserList, PRIVATE, Message_select_group, isInBotList
+from ..params.rule import PRIVATE, Message_select_group, isInBotList
+from ..params.permission import SUPERUSER, isInUserList
 from .rob import add_rob, refresh_friend_list
 from .kusa_group import update_rank_day, update_rank_once
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-bot_main = 3345744507
-chu_id = 3056318700
-ceg_group_id = 738721109
-test_group_id = 278660330
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
+
+bot_main = plugin_config.bot_kusa
+chu_id = plugin_config.bot_chu
+ceg_group_id = plugin_config.group_id_kusa
+test_group_id = plugin_config.group_id_test
 advKusaTypeEffectMap = {'巨草': 2, '巨巨草': 3, '巨灵草': 4, '灵草': 2, '灵草II': 3,
                         '灵草III': 4, '灵草IV': 5, '灵草V': 6, '灵草VI': 7, '灵草VII': 8,
                         '灵草VIII': 9, '神灵草': 10}
@@ -30,17 +34,19 @@ buff_ling = {}
 capacity = {}
 testing_capacity = {}
 job_sec = -1
-garden = on_regex("^百草园：", rule=PRIVATE() & isInUserList([chu_id]))
-growing_start = on_regex("^开始生.*?草.*?。", rule=PRIVATE() & isInUserList([chu_id]))
-grown = on_regex("^你的.*?草.*?生了出来！", rule=PRIVATE() & isInUserList([chu_id]))
-day_report = on_regex("^最近24小时共生草", rule=PRIVATE() & isInUserList([chu_id]))
+garden = on_regex("^百草园：", rule=PRIVATE(), permission=isInUserList([chu_id]))
+growing_start = on_regex("^开始生.*?草.*?。", rule=PRIVATE(), permission=isInUserList([chu_id]))
+grown = on_regex("^你的.*?草.*?生了出来！", rule=PRIVATE(), permission=isInUserList([chu_id]))
+day_report = on_regex("^最近24小时共生草", rule=PRIVATE(), permission=isInUserList([chu_id]))
 others_grow = on_regex(
     r"^开始生.*?草.*?。(剩余时间：\d+min.*?\n预计生草完成时间：\d+:\d+|\n时光魔法吟唱中……\n.*?)\n预知：生草量为\d+",
-    rule=Message_select_group(ceg_group_id) & isInUserList([chu_id] + admin_list) & isInBotList([3345744507]))
+    rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]),
+    permission=isInUserList([chu_id]) | SUPERUSER)
 others_garden = on_regex(
     r"^百草园：\n(距离.*?草.*?长成还有\d+min|你的.*?草.*?将在一分钟内长成！)\n预计生草完成时间：\d+:\d+\n"
     r"预知：生草量为\d+.*?\n\n你选择的默认草种为：.*?草.*?\n当前的土壤承载力为：\d+",
-    rule=Message_select_group(ceg_group_id) & isInUserList([chu_id] + admin_list) & isInBotList([3345744507]))
+    rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]),
+    permission=isInUserList([chu_id]) | SUPERUSER)
 
 
 async def init(uid: int):
@@ -49,7 +55,7 @@ async def init(uid: int):
         buff_ling[uid] = False
         capacity[uid] = 0
         testing_capacity[uid] = False
-        if uid == 3345744507:
+        if uid == bot_main:
             await refresh_friend_list()
 
 
@@ -279,7 +285,6 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str 
             if await add_rob(0, finish_tmp, kusa_num, adv, desc):
                 await send_msg(bot, group_id=event.group_id, message=f"[CQ:reply,id={event.message_id}]" + gstr)
         else:
-            await add_rob(0, finish_tmp, kusa_num, adv, desc, False)
             await send_msg(bot, group_id=event.group_id, message=f"[CQ:reply,id={event.message_id}]debug:" + gstr)
     await matcher.finish()
 
@@ -350,11 +355,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot, arg: str 
             gstr += f'\n质量: 基础草精{adv_base}'
 
     if rob:
-        if event.user_id == chu_id or event.user_id == 3584213919:
+        if event.user_id == chu_id:
             if await add_rob(0, finish_tmp, kusa_num, adv, desc):
-                if event.user_id == chu_id:
-                    await send_msg(bot, group_id=event.group_id, message=f"[CQ:reply,id={event.message_id}]" + gstr)
+                await send_msg(bot, group_id=event.group_id, message=f"[CQ:reply,id={event.message_id}]" + gstr)
         else:
-            await add_rob(0, finish_tmp, kusa_num, adv, desc, False)
             await send_msg(bot, group_id=event.group_id, message=f"[CQ:reply,id={event.message_id}]debug:" + gstr)
     await matcher.finish()
