@@ -12,7 +12,8 @@ from nonebot.adapters.onebot.v11 import (
 )
 
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInBotList, GROUP, PRIVATE, isInUserList
+from ..params.rule import isInBotList, GROUP, PRIVATE
+from ..params.permission import isInUserList
 from ..params.kusa_helper import isSubAccount
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
