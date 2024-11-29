@@ -78,7 +78,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         'startTime': datetime.now()
     }
     envelopes.append(dic)
-    _ = on_regex(r"\(\d+\)转让了\d+个草给你！", rule=PRIVATE() & isInBotList([bot_id]) & isInUserList([chu_id]),
+    _ = on_regex(r"\(\d+\)转让了\d+个草给你！",
+                 rule=PRIVATE() & isInBotList([bot_id]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive])
     await send_msg2(event, f'请将准备发的草用你的账号发给bot，作为草包总额，限时60s\n\n!草转让 qq={event.self_id} kusa=')
     await matcher.finish()
