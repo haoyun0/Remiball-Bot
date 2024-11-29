@@ -102,8 +102,12 @@ async def get_G_data():
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
 async def handle():
-    for bot_id in admin_list:
-        await send_msg(bot_id, user_id=chu_id, message='!交易总结')
+    await asyncio.gather(
+        send_msg(admin_list[0], user_id=chu_id, message='!交易总结'),
+        send_msg(admin_list[1], user_id=chu_id, message='!交易总结'),
+        send_msg(admin_list[4], user_id=chu_id, message='!交易总结')
+    )
+    await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
 
 
 @G_conclude.handle()
