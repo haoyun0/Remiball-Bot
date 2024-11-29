@@ -1,4 +1,5 @@
 from nonebot.internal.rule import Rule
+from nonebot.rule import to_me
 from nonebot.adapters.onebot.v11 import (
     MessageEvent
 )
