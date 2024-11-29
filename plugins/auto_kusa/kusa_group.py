@@ -3,7 +3,7 @@ import json
 import random
 import re
 
-from nonebot import on_command, on_regex, get_bots, require
+from nonebot import on_command, on_regex, get_bots, require, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText, CommandArg
 from nonebot.adapters.onebot.v11 import (
@@ -13,42 +13,46 @@ from nonebot.adapters.onebot.v11 import (
     Bot
 )
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInUserList, PRIVATE, Message_select_group, isInBotList
+from ..params.rule import PRIVATE, Message_select_group, isInBotList
+from ..params.permission import SUPERUSER, isInUserList
 from nonebot_plugin_apscheduler import scheduler
+from .config import Config
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-bot_main = 3345744507
-chu_id = 3056318700
-stone_id = 3150152495
-ceg_group_id = 738721109
-test_group_id = 278660330
-test2_group_id = 951329315
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
+bot_main = plugin_config.bot_kusa
+chu_id = plugin_config.bot_chu
+stone_id = plugin_config.stone_id
+ceg_group_id = plugin_config.group_id_kusa
+test_group_id = plugin_config.group_id_test
+test2_group_id = plugin_config.group_id_test2
 
-gather = on_command('集资', rule=isInUserList(admin_list))
+gather = on_command('集资', permission=SUPERUSER)
 gather_account = 0
 gather_items = ['自动化核心', '十连券', '高级十连券', '特级十连券']
-echo = on_command('echo', rule=isInUserList(admin_list + [stone_id]) & Message_select_group(test2_group_id))
+echo = on_command('echo', rule=Message_select_group(test2_group_id),
+                  permission=isInUserList([stone_id]) | SUPERUSER)
 get_rank_list = on_regex('^草精新星排行榜|^总草精排行榜',
-                         rule=isInUserList([chu_id]) & Message_select_group(ceg_group_id) & isInBotList([bot_main]))
+                         rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]),
+                         permission=isInUserList([chu_id]))
 name_list = on_command('改名列表', aliases={'假面列表', '面具列表'},
-                       rule=isInUserList(admin_list) & isInBotList([bot_main]))
+                       rule=isInBotList([bot_main]), permission=SUPERUSER)
 
-avoid = asyncio.Lock()
-is_rename_to_other = {'323690346': False,
-                      '847360401': False,
-                      '3584213919': False,
-                      '3345744507': False}
 file_rank_list = 'C:/data/rank_list.txt'
+is_rename_to_other = {str(plugin_config.bot_G0): False,
+                      str(plugin_config.bot_G1): False,
+                      str(plugin_config.bot_G2): False,
+                      str(plugin_config.bot_G3): False}
+name_origin = {str(plugin_config.bot_G1): '看不见的手',
+               str(plugin_config.bot_G2): '提线木偶',
+               str(plugin_config.bot_G0): '仿生泪滴',
+               str(plugin_config.bot_G3): '抄底狂魔'}
 with open(file_rank_list, mode="r", encoding='utf-8') as file:
     data_free = json.loads(file.read())
     rank_list = data_free['rank_list']
     my_rank = data_free['my_rank']
-name_origin = {'323690346': '看不见的手',
-               '847360401': '提线木偶',
-               '3584213919': '仿生泪滴',
-               '3345744507': '抄底狂魔'}
+
 lock_rename = asyncio.Lock()
 lock_send = asyncio.Lock()
 

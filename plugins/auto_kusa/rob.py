@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import random
 import json
 
-from nonebot import on_regex, on_command, require, get_bot
+from nonebot import on_regex, on_command, require, get_bot, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -11,26 +11,29 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent
 )
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInUserList, Message_select_group, isInBotList, GROUP
+from ..params.rule import Message_select_group, isInBotList, GROUP
+from ..params.permission import SUPERUSER, isInUserList
 from .kusa_group import rename_to_other, rename_to_itself
+from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
+plugin_config = Config.parse_obj(get_driver().config)
 
-chu_id = 3056318700
-bot_main = 3345744507
-ceg_group_id = 738721109
-test_group_id = 278660330
-admin_list = [323690346, 847360401, 3584213919, 3345744507]
-# file_free_rob = 'D:/data/log/autokusa/free_rob.txt'
+chu_id = plugin_config.bot_chu
+bot_main = plugin_config.bot_kusa
+ceg_group_id = plugin_config.group_id_kusa
+test_group_id = plugin_config.group_id_test
 file_free_rob = 'C:/data/free_rob.txt'
+
 rob_start = on_regex(r'^喜报\n(.*?玩家.*?使用 .*?草.*? 获得了\d+个草之精华！大家快来围殴他吧！'
                      r'|魔法少女纯酱为生.*?草.*?达成.连的玩家.*?召唤了额外的\d+草之精华喵)',
-                     rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]) & isInBotList([bot_main]))
+                     rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]),
+                     permission=isInUserList([chu_id]))
 rob_free = on_command('免费礼炮', rule=Message_select_group(ceg_group_id) & isInBotList([bot_main]))
-rob_test = on_command('围殴测试', rule=GROUP() & isInBotList([bot_main]) & isInUserList(admin_list))
+rob_test = on_command('围殴测试', rule=GROUP() & isInBotList([bot_main]), permission=SUPERUSER)
 rob_reset_name = on_regex(rf'^本次围殴结束，玩家',
-                          rule=Message_select_group(ceg_group_id) & isInUserList([chu_id]))
+                          rule=Message_select_group(ceg_group_id), permission=isInUserList([chu_id]))
 
 rob_list = []
 # {uid: int, endTime: datetime}
