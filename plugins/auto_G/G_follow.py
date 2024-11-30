@@ -1,15 +1,18 @@
+import json
 import re
 from datetime import datetime, timedelta
 
-from nonebot import on_regex, require, get_driver
+from nonebot import on_regex, require, get_driver, on_command
 from nonebot.matcher import Matcher
-from nonebot.params import EventPlainText
+from nonebot.params import EventPlainText, CommandArg
 from nonebot.adapters.onebot.v11 import (
-    Bot
+    Bot,
+    Message,
+    MessageEvent
 )
-from ..params.message_api import send_msg
+from ..params.message_api import send_msg, send_msg2
 from ..params.rule import PRIVATE, isInBotList
-from ..params.permission import isInUserList
+from ..params.permission import isInUserList, SUPERUSER
 from .stastic import get_G_data
 from .bank import bank_freeze
 from .config import Config
@@ -20,11 +23,41 @@ plugin_config = Config.parse_obj(get_driver().config)
 
 chu_id = plugin_config.bot_chu
 GBot = plugin_config.bot_main
-follow_id_list = [int(x) for x in plugin_config.g_follow_accounts]
 follow_id_num = 0
 
 target = ['东', '南', '北', '珠海', '深圳']
 my_kusa = 0
+
+set_follow = on_command('G跟踪', rule=isInBotList([GBot]), permission=SUPERUSER)
+
+try:
+    with open(r'C:/Data/G_follow.txt', 'r', encoding='utf-8') as f:
+        follow_data = json.loads(f.read())
+except:
+    follow_data = {'id_list': [323690346]}
+follow_id_list = follow_data['id_list']
+
+
+async def savefile():
+    with open(r'C:/Data/G_follow.txt', 'w', encoding='utf-8') as s:
+        s.write(json.dumps(follow_data))
+
+
+@set_follow.handle()
+async def handle(matcher: Matcher, bot: Bot, event: MessageEvent, arg: Message = CommandArg()):
+    global follow_id_list
+    args = arg.extract_plain_text().strip().split()
+    if len(args) == 0:
+        await send_msg2(event, f"跟G名单为{follow_id_list}")
+    else:
+        myList = []
+        for qq in args:
+            myList.append(int(qq))
+        follow_id_list = myList
+        follow_data['id_list'] = myList
+        await send_msg2(event, f"跟G名单更新为{follow_id_list}")
+        await savefile()
+    await matcher.finish()
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
