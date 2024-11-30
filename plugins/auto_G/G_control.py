@@ -104,12 +104,16 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
     G = await get_G_data()
+    tot = 0
     outputStr = f'空闲的草: {G_data["kusa"]}'
-    outputStr += '\n拥有的G:'
+    outputStr2 = '\n拥有的G:'
     for i in range(5):
         t = target[i]
         if G_data['own'][i] > 0:
-            outputStr += f'\n{t[0]}: {round(G[i] * G_data["own"][i] / 1000000)}m'
+            outputStr2 += f'\n{t[0]}: {round(G[i] * G_data["own"][i] / 1000000)}m'
+            tot += int(G[i] * G_data["own"][i])
+    outputStr2 += f'\n共计{round(tot / 100000000, 1)}亿草的G'
+    outputStr += outputStr2 if tot > 0 else ""
     await send_msg2(event, outputStr)
     await matcher.finish()
 
