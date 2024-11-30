@@ -459,7 +459,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
         outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
         if r > 0:
             r2 = max(min(max((r * 100) ** 2 / 4 / 100, r * 4), 1.0), 0.01)
-            red = random.randint(int(0.02 * m * r2), int(0.3 * m * r2))
+            red = random.randint(int(0.08 * m * r2), int(0.24 * m * r2))
             outputStr += (f'\n尊贵的股东{event.user_id}:'
                           f'\n您额外获得了{red}草的分红')
             kusa += red
@@ -628,6 +628,10 @@ async def bank_unfreeze():
     global freeze_flag
     if freeze_flag > 0:
         freeze_flag -= 1
+
+
+async def get_bank_divvy():
+    return bank_data['divvy'], bank_data['divvy_total']
 
 
 @cnt_divvy.handle()

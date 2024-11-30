@@ -12,7 +12,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze
+from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -81,7 +81,8 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
+        outputStr += (f"\n有形: {m[2]}m, 跟G: {m[0]}m,"
+                      f"无形: {m[1]}m, 抄底: {m[3]}m")
     except:
         await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
@@ -152,7 +153,8 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
-    gift = kusa // 4
+    d, _ = await get_bank_divvy()
+    gift = (kusa - d) // 4
     # 银行流动资金
     for uid in bot.config.superusers:
         if uid != str(Bank_bot):
