@@ -86,6 +86,7 @@ except:
         'bank': {
             'finance': [0, 0, 0, 0],
             'total_storage': 0,
+            'total_kusa': 0,
             'divvy': 0,
             'divvy_total': 0,
             'divvy_user_list': []
@@ -433,7 +434,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
         if r > 0:
             r2 = max((r * 100) ** 2 / 4 / 100, r * 4)
             r2 = max(min(r2, 1.0), 0.01)
-            red = random.randint(int(0.08 * m * r2), int(0.24 * m * r2))
+            red = random.randint(int(0.1 * m * r2), int(0.3 * m * r2))
             outputStr += (f'\n尊贵的股东{event.user_id}:'
                           f'\n您额外获得了{red}草的分红')
             kusa += red
@@ -565,7 +566,7 @@ async def get_user_ratio(bot: Bot, user_id: int) -> float:
 async def get_user_true_kusa(bot: Bot, user_id: int) -> int:
     uid = str(user_id)
     if uid in bot.config.superusers:
-        return bank_data['total_storage']
+        return bank_data['total_kusa']
     await init_user(uid)
     return user_data[uid]['kusa'] - user_data[uid]['kusa_new']
 
@@ -596,15 +597,20 @@ async def get_bank_divvy():
     return bank_data['divvy'], bank_data['divvy_total']
 
 
+async def set_bank_kusa(kusa: int):
+    bank_data['total_kusa'] = kusa
+    await savefile()
+
+
 @cnt_divvy.handle()
 async def handle(matcher: Matcher):
     await bank_freeze()
     async with lock_divvy:
         bank_data['divvy_total'] = 0
         m = await get_finance()
-        n = bank_data['total_storage']
+        n = bank_data['total_kusa']
         if m / n > 0.1:
-            bank_data['divvy_total'] = int(0.1 * m)
+            bank_data['divvy_total'] = int(0.1 * m * bank_data['total_storage'] / bank_data['total_kusa'])
         bank_data['divvy'] = bank_data['divvy_total']
         bank_data['divvy_user_list'].clear()
         await savefile()

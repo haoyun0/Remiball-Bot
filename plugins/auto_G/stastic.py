@@ -12,7 +12,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy
+from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -154,6 +154,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     d, _ = await get_bank_divvy()
+    await set_bank_kusa(kusa - d)
     gift = (kusa - d) // 4
     # 银行流动资金
     for uid in bot.config.superusers:
