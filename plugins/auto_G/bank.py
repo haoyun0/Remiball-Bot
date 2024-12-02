@@ -111,6 +111,12 @@ async def savefile():
         s.write(json.dumps(data_raw))
 
 
+async def freeze_depend(matcher: Matcher, event: MessageEvent):
+    if freeze_flag > 0:
+        await send_msg2(event, '草行维护中，请稍后再试')
+        await matcher.finish()
+
+
 async def init_user(uid: str):
     if uid not in user_data:
         user_data[uid] = {}
@@ -162,11 +168,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await matcher.finish()
 
 
-@bank_user_store.handle()
+@bank_user_store.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
@@ -177,11 +180,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await matcher.finish()
 
 
-@bank_user_take.handle()
+@bank_user_take.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     async with lock_send_kusa:
         uid = event.get_user_id()
         await init_user(uid)
@@ -203,11 +203,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     await matcher.finish()
 
 
-@bank_user_take_more.handle()
+@bank_user_take_more.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     async with lock_send_kusa:
         uid = event.get_user_id()
         await init_user(uid)
@@ -226,11 +223,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
     await matcher.finish()
 
 
-@bank_earn.handle()
+@bank_earn.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     async with lock_conclude:
         s = bank_data['finance'].copy()
         s.sort()
@@ -253,11 +247,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
         await matcher.finish()
 
 
-@bank_user_judge.handle()
+@bank_user_judge.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     arg: str = arg.extract_plain_text().strip()
     uid = event.get_user_id()
     await init_user(uid)
@@ -278,11 +269,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
     await matcher.finish()
 
 
-@bank_user_loan.handle()
+@bank_user_loan.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     async with lock_send_kusa:
         uid = event.get_user_id()
         await init_user(uid)
@@ -306,11 +294,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     await matcher.finish()
 
 
-@bank_user_repayment.handle()
+@bank_user_repayment.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     uid = event.get_user_id()
     await init_user(uid)
     if user_data[uid]['loan'] == 0:
@@ -422,11 +407,8 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
     await matcher.finish()
 
 
-@get_divvy.handle()
+@get_divvy.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     async with lock_divvy:
         m = bank_data['divvy_total']
         if m == 0:
@@ -562,7 +544,7 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
 
 @bank_freeze.handle()
 async def handle(matcher: Matcher, event: MessageEvent):
-    if is_freeze():
+    if freeze_flag > 0:
         outputStr = '解除草行维护状态'
         await bank_unfreeze()
     else:
@@ -597,10 +579,6 @@ async def set_finance(data: list):
 
 async def get_finance() -> int:
     return bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
-
-
-def is_freeze() -> bool:
-    return freeze_flag > 0
 
 
 async def bank_freeze():

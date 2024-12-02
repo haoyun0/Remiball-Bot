@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 from nonebot import on_command, on_regex, require, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import EventPlainText, CommandArg
+from nonebot.params import EventPlainText, CommandArg, Depends
 from nonebot.adapters.onebot.v11 import (
     Bot,
     Message,
@@ -15,7 +15,7 @@ from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import SUPERUSER, isInUserList
 from .stastic import get_G_data
-from .bank import get_user_true_kusa, is_freeze
+from .bank import get_user_true_kusa, freeze_depend
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -84,11 +84,8 @@ async def handle():
     operate_data.clear()
 
 
-@G_permit.handle()
+@G_permit.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     m = await get_user_true_kusa(bot, event.user_id)
     if m < 10000000:
         outputStr = '没有权限'
@@ -98,11 +95,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     await matcher.finish()
 
 
-@G_hold_on.handle()
+@G_hold_on.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     G = await get_G_data()
     tot = 0
     outputStr = f'空闲的草: {G_data["kusa"]}'
@@ -118,11 +112,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await matcher.finish()
 
 
-@G_buy_in.handle()
+@G_buy_in.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     m = await get_user_true_kusa(bot, event.user_id)
     if m < 10000000:
         await send_msg2(event, '没有权限')
@@ -171,11 +162,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     await matcher.finish()
 
 
-@G_sell_out.handle()
+@G_sell_out.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
-    if is_freeze():
-        await send_msg2(event, '草行维护中，暂时不能操作')
-        await matcher.finish()
     m = await get_user_true_kusa(bot, event.user_id)
     if m < 10000000:
         await send_msg2(event, '没有权限')
