@@ -366,28 +366,21 @@ async def handle_receive3(matcher: Annotated[Matcher, Depends(handleOnlyOnce, us
 async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['user_id']
     result = 0
-    if '草精炼厂' in arg:
-        tmp = arg.index('草精炼厂 * ') + 7
-        factory = 0
-        while arg[tmp].isdigit():
-            factory = factory * 10 + int(arg[tmp])
-            tmp += 1
-        if factory >= 35:
-            result = 2000000000
-        elif factory >= 28:
-            result = 1000000000
-        elif factory >= 21:
-            result = 600000000
-        elif factory >= 14:
-            result = 250000000
-        elif factory >= 7:
-            result = 100000000
+    r = re.search(r", 草精炼厂 \* (\d+)", arg)
+    if r is not None:
+        factory_level = min(int(r.group(1)) // 7, 5)
+        result += int(100000000 * 2.5 ** (factory_level - 1)) if factory_level > 0 else 0
+    r = re.search(r", 高效草精炼指南 \* (\d+)", arg)
+    if r is not None:
+        tips = int(r.group(1))
+        result += int(250000 * 4 ** (tips - 1) / 2)
+    r = re.search(r"草地 \* (\d+)", arg)
+    if r is not None:
+        grass = int(r.group(1))
+        result += int(120 * 1.04 ** (grass - 1) * 10)
     user_data[uid]['loan_amount'] = result
     await savefile()
-    if result > 0:
-        await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]经过审批，您在草行的借草额度为{result}草')
-    else:
-        await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]萌新先好好发展，不批准借草')
+    await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]经过审批，您在草行的借草额度为{result}草')
     await matcher.finish()
 
 
