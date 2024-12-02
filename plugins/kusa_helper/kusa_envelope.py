@@ -1,10 +1,11 @@
 import random
 import re
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from nonebot import on_command, on_regex, require, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, EventPlainText
+from nonebot.params import CommandArg, EventPlainText, Depends
 from nonebot.adapters.onebot.v11 import (
     Message,
     GroupMessageEvent,
@@ -14,7 +15,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, GROUP, PRIVATE
 from ..params.permission import isInUserList
-from ..params.kusa_helper import isSubAccount
+from ..params.kusa_helper import isSubAccount, handleOnlyOnce
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -29,7 +30,8 @@ receive = on_command('抢草包', rule=isInBotList([bot_id]) & GROUP())
 envelopes = []
 
 
-async def handle_receive(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                         bot: Bot, arg: str = EventPlainText()):
     # ({userId})转让了{transferKusa}个草给你！
     r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
     uid, kusa_num = r.group(1), int(r.group(2))

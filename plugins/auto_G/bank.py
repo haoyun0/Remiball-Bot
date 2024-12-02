@@ -3,19 +3,19 @@ import json
 import random
 import re
 from datetime import datetime, timedelta
+from typing import Annotated
 
 from nonebot import require, on_command, on_regex, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import CommandArg, EventPlainText, T_State
+from nonebot.params import CommandArg, EventPlainText, T_State, Depends
 from nonebot.adapters.onebot.v11 import (
     MessageEvent,
     GroupMessageEvent,
-    PrivateMessageEvent,
     Message,
     Bot
 )
 from ..params.message_api import send_msg, send_msg2
-from ..params.kusa_helper import isSubAccount, isReceiveValid
+from ..params.kusa_helper import isSubAccount, handleOnlyOnce
 from ..params.rule import Message_select_group, isInBotList, PRIVATE
 from ..params.permission import SUPERUSER, isInUserList
 from .config import Config
@@ -317,10 +317,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await matcher.finish()
 
 
-async def handle_receive(matcher: Matcher, event: PrivateMessageEvent, bot: Bot, arg: str = EventPlainText()):
+async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                         bot: Bot, arg: str = EventPlainText()):
     # ({userId})转让了{transferKusa}个草给你！
-    if not isReceiveValid(event.message_id):
-        await matcher.finish()
     r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
     uid, kusa_num = r.group(1), int(r.group(2))
     await init_user(uid)
@@ -331,9 +330,8 @@ async def handle_receive(matcher: Matcher, event: PrivateMessageEvent, bot: Bot,
     await matcher.finish()
 
 
-async def handle_receive2(matcher: Matcher, event: PrivateMessageEvent, bot: Bot, arg: str = EventPlainText()):
-    if not isReceiveValid(event.message_id):
-        await matcher.finish()
+async def handle_receive2(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                          bot: Bot, arg: str = EventPlainText()):
     r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
     uid, kusa_num = r.group(1), int(r.group(2))
     await init_user(uid)
@@ -351,9 +349,8 @@ async def handle_receive2(matcher: Matcher, event: PrivateMessageEvent, bot: Bot
     await matcher.finish()
 
 
-async def handle_receive3(matcher: Matcher, event: PrivateMessageEvent, bot: Bot, arg: str = EventPlainText()):
-    if not isReceiveValid(event.message_id):
-        await matcher.finish()
+async def handle_receive3(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                          bot: Bot, arg: str = EventPlainText()):
     r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
     uid = r.group(1)
     await init_user(uid)
@@ -368,6 +365,7 @@ async def handle_receive3(matcher: Matcher, event: PrivateMessageEvent, bot: Bot
 
 async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['user_id']
+    result = 0
     if '草精炼厂' in arg:
         tmp = arg.index('草精炼厂 * ') + 7
         factory = 0
@@ -375,19 +373,15 @@ async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: 
             factory = factory * 10 + int(arg[tmp])
             tmp += 1
         if factory >= 35:
-            result = 1000000000
+            result = 2000000000
         elif factory >= 28:
-            result = 400000000
+            result = 1000000000
         elif factory >= 21:
-            result = 200000000
+            result = 600000000
         elif factory >= 14:
-            result = 100000000
+            result = 250000000
         elif factory >= 7:
-            result = 50000000
-        else:
-            result = 0
-    else:
-        result = 0
+            result = 100000000
     user_data[uid]['loan_amount'] = result
     await savefile()
     if result > 0:
@@ -397,10 +391,8 @@ async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: 
     await matcher.finish()
 
 
-async def handle_give_kusa(matcher: Matcher, event: PrivateMessageEvent, bot: Bot, state: T_State,
-                           arg: str = EventPlainText()):
-    if not isReceiveValid(event.message_id):
-        await matcher.finish()
+async def handle_give_kusa(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                           bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['uid']
     if '转让成功' in arg:
         user_data[uid]['kusa'] -= state['kusa']
@@ -417,10 +409,8 @@ async def handle_give_kusa(matcher: Matcher, event: PrivateMessageEvent, bot: Bo
     await matcher.finish()
 
 
-async def handle_give_loan(matcher: Matcher, event: PrivateMessageEvent, bot: Bot, state: T_State,
-                           arg: str = EventPlainText()):
-    if not isReceiveValid(event.message_id):
-        await matcher.finish()
+async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                           bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['uid']
     if '转让成功' in arg:
         user_data[uid]['loan'] += int(state['kusa'] * 1.01)
@@ -453,12 +443,13 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
             await matcher.finish()
 
         bank_data['divvy_user_list'].append(event.user_id)
-        n = await get_user_num()
-        kusa = random.randint(1, int(0.2 * m / n))
+        n = 30
+        kusa = random.randint(1, int(0.2 * m * 2 / n))
         r = await get_user_ratio(bot, event.user_id)
         outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
         if r > 0:
-            r2 = max(min(max((r * 100) ** 2 / 4 / 100, r * 4), 1.0), 0.01)
+            r2 = max((r * 100) ** 2 / 4 / 100, r * 4)
+            r2 = max(min(r2, 1.0), 0.01)
             red = random.randint(int(0.08 * m * r2), int(0.24 * m * r2))
             outputStr += (f'\n尊贵的股东{event.user_id}:'
                           f'\n您额外获得了{red}草的分红')
@@ -594,14 +585,6 @@ async def get_user_true_kusa(bot: Bot, user_id: int) -> int:
         return bank_data['total_storage']
     await init_user(uid)
     return user_data[uid]['kusa'] - user_data[uid]['kusa_new']
-
-
-async def get_user_num() -> int:
-    ans = 0
-    for uid in user_data:
-        if user_data[uid]['kusa'] - user_data[uid]['kusa_new'] > 0:
-            ans += 1
-    return ans
 
 
 async def set_finance(data: list):
