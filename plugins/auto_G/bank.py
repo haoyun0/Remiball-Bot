@@ -428,7 +428,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 
         bank_data['divvy_user_list'].append(event.user_id)
         n = 30
-        kusa = random.randint(1, int(0.2 * m * 2 / n))
+        kusa = random.randint(1, int(0.15 * m * 2 / n))
         r = await get_user_ratio(bot, event.user_id)
         outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
         if r > 0:
