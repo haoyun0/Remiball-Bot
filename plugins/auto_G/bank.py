@@ -229,7 +229,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     async with lock_conclude:
         s = bank_data['finance'].copy()
         s.sort()
-        if s[1] - s[0] > s[3] - s[2]:
+        if s[2] - s[0] > s[3] - s[1]:
             random_earn = random.randint(s[1], s[3]) + s[0] + s[1] + s[3]
         else:
             random_earn = random.randint(s[0], s[2]) + s[0] + s[2] + s[3]
