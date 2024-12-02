@@ -13,6 +13,7 @@ from ..params.message_api import send_msg
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
 from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa
+from .G_pic import draw_G_pic
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -75,6 +76,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
     G_data[date][str(turn_new)] = new_data
     await savefile()
+    await draw_G_pic(G_data, reverse=float(value_all.group(5)) < 120)
 
     try:
         m: list[int] = [finance[G_bot_list[0]], finance[G_bot_list[1]], finance[G_bot_list[2]], finance[G_bot_list[3]]]
