@@ -32,6 +32,8 @@ freeze_flag = 0
 lock_divvy = asyncio.Lock()
 investigate_list = {}
 
+lock_send_kusa = asyncio.Lock()
+
 # 用户指令
 bank_ratio = on_command('草利率',
                         rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
@@ -180,22 +182,24 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    uid = event.get_user_id()
-    await init_user(uid)
-    arg: str = arg.extract_plain_text().strip()
-    if not arg.isnumeric() or int(arg) <= 0:
-        await send_msg2(event, '请在指令参数输入要立即取款的数额')
-        await matcher.finish()
-    num = int(arg)
-    if num > user_data[uid]['kusa']:
-        await send_msg2(event, '余额不足')
-        await matcher.finish()
+    async with lock_send_kusa:
+        uid = event.get_user_id()
+        await init_user(uid)
+        arg: str = arg.extract_plain_text().strip()
+        if not arg.isnumeric() or int(arg) <= 0:
+            await send_msg2(event, '请在指令参数输入要立即取款的数额')
+            await matcher.finish()
+        num = int(arg)
+        if num > user_data[uid]['kusa']:
+            await send_msg2(event, '余额不足')
+            await matcher.finish()
 
-    _ = on_regex(rf"^你不够草|^转让成功",
-                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_kusa],
-                 state={'uid': uid, 'kusa': num})
-    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
+        _ = on_regex(rf"^你不够草|^转让成功",
+                     rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
+                     expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_kusa],
+                     state={'uid': uid, 'kusa': num})
+        await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
+        await asyncio.sleep(2)
     await matcher.finish()
 
 
@@ -204,19 +208,21 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    uid = event.get_user_id()
-    await init_user(uid)
-    arg: str = arg.extract_plain_text().strip()
-    if not arg.isnumeric():
-        await send_msg2(event, '请在指令参数输入要立即取款的数额')
-        await matcher.finish()
-    num = int(arg)
-    if num > user_data[uid]['kusa']:
-        await send_msg2(event, '余额不足')
-        await matcher.finish()
-    user_data[uid]['kusa_out'] = num
-    await savefile()
-    await send_msg2(event, f"已将预约取款的数额设置为{num}")
+    async with lock_send_kusa:
+        uid = event.get_user_id()
+        await init_user(uid)
+        arg: str = arg.extract_plain_text().strip()
+        if not arg.isnumeric():
+            await send_msg2(event, '请在指令参数输入要立即取款的数额')
+            await matcher.finish()
+        num = int(arg)
+        if num > user_data[uid]['kusa']:
+            await send_msg2(event, '余额不足')
+            await matcher.finish()
+        user_data[uid]['kusa_out'] = num
+        await savefile()
+        await send_msg2(event, f"已将预约取款的数额设置为{num}")
+        await asyncio.sleep(2)
     await matcher.finish()
 
 
@@ -277,24 +283,26 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     if is_freeze():
         await send_msg2(event, '草行维护中，暂时不能操作')
         await matcher.finish()
-    uid = event.get_user_id()
-    await init_user(uid)
-    if user_data[uid]['loan_amount'] == 0:
-        await send_msg2(event, '请先使用草审批指令审核贷草额度')
-        await matcher.finish()
-    arg: str = arg.extract_plain_text().strip()
-    if not arg.isnumeric() or int(arg) <= 0:
-        await send_msg2(event, '请在指令参数输入要贷草的数额')
-        await matcher.finish()
-    num = int(arg)
-    if num + user_data[uid]['loan'] > user_data[uid]['loan_amount']:
-        await send_msg2(event, '额度不足，若想借草请联系扫地机')
-        await matcher.finish()
-    _ = on_regex(rf"^你不够草|^转让成功",
-                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_loan],
-                 state={'uid': uid, 'kusa': num})
-    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
+    async with lock_send_kusa:
+        uid = event.get_user_id()
+        await init_user(uid)
+        if user_data[uid]['loan_amount'] == 0:
+            await send_msg2(event, '请先使用草审批指令审核贷草额度')
+            await matcher.finish()
+        arg: str = arg.extract_plain_text().strip()
+        if not arg.isnumeric() or int(arg) <= 0:
+            await send_msg2(event, '请在指令参数输入要贷草的数额')
+            await matcher.finish()
+        num = int(arg)
+        if num + user_data[uid]['loan'] > user_data[uid]['loan_amount']:
+            await send_msg2(event, '额度不足，若想借草请联系扫地机')
+            await matcher.finish()
+        _ = on_regex(rf"^你不够草|^转让成功",
+                     rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
+                     expire_time=datetime.now() + timedelta(seconds=5), temp=True, handlers=[handle_give_loan],
+                     state={'uid': uid, 'kusa': num})
+        await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={num}")
+        await asyncio.sleep(2)
     await matcher.finish()
 
 
