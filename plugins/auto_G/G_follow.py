@@ -79,10 +79,13 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     follow_id_num = 0
 
+    if follow_id_list[0] == 0:
+        await matcher.finish()
+
     _ = on_regex(r'当前拥有草: \d+\n',
                  rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
+    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[0]}')
     await matcher.finish()
 
 
@@ -107,7 +110,7 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
             await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
             await matcher.finish()
         else:
-            c = [0, 0, 0, 0, 0]
+            return
     else:
         for i in range(5):
             c[i] /= tot
