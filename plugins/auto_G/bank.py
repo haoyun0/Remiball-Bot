@@ -1,5 +1,6 @@
 import asyncio
 import json
+import math
 import random
 import re
 from datetime import datetime, timedelta
@@ -26,12 +27,14 @@ plugin_config = Config.parse_obj(get_driver().config)
 
 chu_id = plugin_config.bot_chu
 ceg_group_id = plugin_config.group_id_kusa
+notice_id = plugin_config.bot_g1
 bot_bank = plugin_config.bot_main
 bot_G3 = plugin_config.bot_g3
 
 freeze_flag = 0
 lock_divvy = asyncio.Lock()
 investigate_list = {}
+factory_num = 8
 
 lock_send_kusa = asyncio.Lock()
 
@@ -56,6 +59,10 @@ bank_user_repayment = on_command('草还款',
                                  rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
 get_divvy = on_command('分红',
                        rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
+user_get_factory = on_command('草借厂',
+                              rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
+user_return_factory = on_command('草还厂',
+                                 rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]))
 # 管理员指令
 bank_kusa_query = on_command('查看草存款',
                              rule=isInBotList([bot_bank]), permission=SUPERUSER)
@@ -88,7 +95,8 @@ except:
             'finance': [0, 0, 0, 0],
             'total_storage': 0,
             'total_kusa': 0,
-            'kusa_envelope': 0
+            'kusa_envelope': 0,
+            'factory_place': 0,
         }
     }
     user_data = data_raw['user']
@@ -311,6 +319,47 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await matcher.finish()
 
 
+@user_get_factory.handle(parameterless=[Depends(freeze_depend)])
+async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
+    arg: str = arg.extract_plain_text().strip()
+    if arg != '确认':
+        await send_msg2(event, "请务必认真阅读以下借流动厂需知\n"
+                               f"流动厂为生草系统特殊贡献者所有，目前归银行统一自动化管理，目前有{factory_num}个流动厂\n"
+                               "请在借厂前先建好自己所需要的厂，以免影响计算\n"
+                               "借厂则默认使用流动厂建厂，将会在还厂时根据你最后的草精炼厂数计算花费\n"
+                               "收费比例为原先建厂需要的费用乘(0.1 + 0.05 * 建完后草精炼厂数求余7)\n"
+                               "\n如果已经确认读完上述需知，请输入'/草借厂 确认'来开始借厂流程")
+        await matcher.finish()
+    if bank_data['factory_place'] == 0:
+        uid = event.get_user_id()
+        await init_user(uid)
+        _ = on_regex(rf"^.*?\({event.user_id}\)转让了10000个草给你！",
+                     rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
+                     expire_time=datetime.now() + timedelta(seconds=30), temp=True, handlers=[handle_receive4])
+        await send_msg2(event, f'借流动厂需要额外交10000草手续费，请在30s内复制下述指令交手续费\n'
+                               f'\n!草转让 qq={event.self_id} kusa=10000')
+    else:
+        await send_msg2(event, f"流动厂已经借出给{bank_data['factory_place']}")
+    await matcher.finish()
+
+
+@user_return_factory.handle(parameterless=[Depends(freeze_depend)])
+async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+    if bank_data['factory_place'] != event.user_id:
+        await send_msg2(event, "你不需要还厂")
+        await matcher.finish()
+    arg: str = arg.extract_plain_text().strip()
+    if not arg.isdigit() or len(arg) == 0 or int(arg) <= 4 or int(arg) > 10:
+        await send_msg2(event, "请在指令参数中输入您的信息员等级+生草工厂自动工艺等级\n"
+                               "例如信息员lv7，买了333的生草工厂自动工艺I，则输入/草还厂 8\n"
+                               "请注意诚信，否则可能上银行失信名单")
+        await matcher.finish()
+    _ = on_regex(r'当前拥有草: \d+\n', state={'uid': event.get_user_id(), 'level': int(arg)},
+                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
+                 temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
+    await send_msg(bot, user_id=chu_id, message='!仓库')
+
+
 async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
                          bot: Bot, arg: str = EventPlainText()):
     # ({userId})转让了{transferKusa}个草给你！
@@ -357,6 +406,22 @@ async def handle_receive3(matcher: Annotated[Matcher, Depends(handleOnlyOnce, us
     await matcher.finish()
 
 
+async def handle_receive4(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
+                          bot: Bot, arg: str = EventPlainText()):
+    r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
+    uid = r.group(1)
+    await init_user(uid)
+    await send_msg(bot, user_id=chu_id, message=f'!购买 侦察凭证 1')
+    bank_data['factory_place'] = int(uid)
+    await savefile()
+    await send_msg(bot, user_id=chu_id, message=f'!转让 qq={uid} 流动生草工厂 {factory_num}')
+    await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]厂已借出，建完后请复制以下指令归还，'
+                                                       f'并在归还后使用"/草还厂"指令来结算费用\n'
+                                                       f'\n!转让 qq={bot.self_id} 流动生草工厂 {factory_num}')
+    await send_msg(bot_G3, user_id=notice_id, message=f'用户{uid}借走了流动生草工厂')
+    await matcher.finish()
+
+
 async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['user_id']
     result = 0
@@ -375,6 +440,47 @@ async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: 
     user_data[uid]['loan_amount'] = result
     await savefile()
     await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]经过审批，您在草行的借草额度为{result}草')
+    await matcher.finish()
+
+
+async def storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
+    uid = state['uid']
+    r = re.search(r", 流动生草工厂 \* (\d+)", arg)
+    if r is not None:
+        num = int(r.group(1))
+        if num >= factory_num:
+            bank_data['factory_place'] = 0
+            await savefile()
+            _ = on_regex(r'当前拥有草: \d+\n',
+                         rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
+                         temp=True, handlers=[other_storage_handle2], expire_time=datetime.now() + timedelta(seconds=5),
+                         state={'uid': uid, 'level': state['level']})
+            await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={uid}')
+            await matcher.finish()
+    await send_msg(bot, group_id=ceg_group_id, message=f"[CQ:at,qq={uid}]尚未收到流动生草工厂")
+    await matcher.finish()
+
+
+async def other_storage_handle2(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
+    uid = state['uid']
+    e = state['level']
+    r = re.search(r", 生草工厂 \* (\d+)", arg)
+    factoryBefore = int(r.group(1)) if r is not None else 0
+    factoryAfter = factoryBefore + factory_num
+    base = 1 + .5 * math.exp(-0.255 * e)
+    ans = math.floor((base ** factoryBefore) * ((base ** (factoryAfter - factoryBefore)) - 1) / (base - 1))
+
+    r = re.search(r", 草精炼厂 \* (\d+)", arg)
+    factory = int(r.group(1)) if r is not None else 0
+    factory %= 7
+    ans = int(ans * 1000 * (0.1 + factory * 0.05))
+    user_data[uid]['loan'] += ans
+    await send_msg(bot, group_id=ceg_group_id,
+                   message=f'[CQ:at,qq={uid}]还厂成功，本次费用为{ans}，已计入草行欠款，请用还款指令支付。')
+    await send_msg(bot_G3, user_id=notice_id, message=f'用户{uid}还回了流动生草工厂，费用为{ans}')
+    for uid in plugin_config.factory_owner:
+        user_data[uid]['divvy']['流动厂'] += int(ans / (len(plugin_config.factory_owner) + 1))
+    await savefile()
     await matcher.finish()
 
 
@@ -400,7 +506,9 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
                            bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['uid']
     if '转让成功' in arg:
-        user_data[uid]['loan'] += int(state['kusa'] * 1.01)
+        n = int(state['kusa'] * 0.01)
+        await handout_divvy('贷款利息', n)
+        user_data[uid]['loan'] += state['kusa'] + n
         await savefile()
         await send_msg(bot, group_id=ceg_group_id, message=f"[CQ:at,qq={uid}]借草{state['kusa']}成功")
     else:
