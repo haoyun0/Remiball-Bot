@@ -87,7 +87,7 @@ __plugin_meta__ = PluginMetadata(
                 'func': '分红',
                 'trigger_method': '分红',
                 'trigger_condition': '用户指令',
-                'brief_des': '获取草包或者分红',
+                'brief_des': '获取银行各种业务的分红',
                 'detail_des': 'TODO'
             },
             {

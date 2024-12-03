@@ -27,6 +27,7 @@ plugin_config = Config.parse_obj(get_driver().config)
 chu_id = plugin_config.bot_chu
 ceg_group_id = plugin_config.group_id_kusa
 bot_bank = plugin_config.bot_main
+bot_G3 = plugin_config.bot_g3
 
 freeze_flag = 0
 lock_divvy = asyncio.Lock()
@@ -87,9 +88,7 @@ except:
             'finance': [0, 0, 0, 0],
             'total_storage': 0,
             'total_kusa': 0,
-            'divvy': 0,
-            'divvy_total': 0,
-            'divvy_user_list': []
+            'kusa_envelope': 0
         }
     }
     user_data = data_raw['user']
@@ -101,7 +100,12 @@ template_user = {
     'loan': 0,
     'kusa_out': 0,
     'loan_amount': 0,
-    'last_kusa': 0
+    'last_kusa': 0,
+    'divvy': {
+        '贷款利息': 0,
+        '流动厂': 0,
+        'G市': 0
+    }
 }
 
 lock_conclude = asyncio.Lock()
@@ -145,13 +149,9 @@ async def update_kusa():
                 await send_msg(bot_bank, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}] 您预约的{num}草已取出')
                 data['kusa'] -= num
     await savefile()
-    if bank_data["divvy_total"] > 0:
-        outputStr = f'草行发出了{bank_data["divvy_total"]}草的分红，记得来草行领取哦^ ^\n'
-        for uid in user_data:
-            if user_data[uid]['kusa'] / bank_data['total_storage'] > 0.1:
-                outputStr += f"[CQ:at,qq={uid}]"
-        await send_msg(bot_bank, group_id=ceg_group_id,
-                       message=outputStr)
+    if bank_data["kusa_envelope"] > 0:
+        outputStr = f'草行将于明天中午11:30发出{bank_data["kusa_envelope"]}草的草包，记得来领取哦^ ^\n'
+        await send_msg(bot_bank, group_id=ceg_group_id, message=outputStr)
     await bank_unfreeze()
 
 
@@ -175,9 +175,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
     await init_user(uid)
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
                  rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive])
+                 expire_time=datetime.now() + timedelta(seconds=30), temp=True, handlers=[handle_receive])
     await send_msg2(event,
-                    f'请将存款用你的账号发给bot，不低于1w草，限时60s，每存一笔需要重新触发指令\n\n!草转让 qq={event.self_id} kusa=')
+                    f'请将存款用你的账号发给bot，不低于1w草，限时30s，每存一笔需要重新触发指令\n\n!草转让 qq={event.self_id} kusa=')
     await matcher.finish()
 
 
@@ -264,8 +264,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         await matcher.finish()
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了10000个草给你！",
                  rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive3])
-    await send_msg2(event, f'审批额度需要交10000草手续费，请复制下述指令交手续费\n'
+                 expire_time=datetime.now() + timedelta(seconds=30), temp=True, handlers=[handle_receive3])
+    await send_msg2(event, f'审批额度需要交10000草手续费，请在30s内复制下述指令交手续费\n'
                            f'\n!草转让 qq={event.self_id} kusa=10000')
     await matcher.finish()
 
@@ -304,9 +304,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
         await matcher.finish()
     _ = on_regex(rf"^.*?\({event.user_id}\)转让了\d+个草给你！",
                  rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=60), temp=True, handlers=[handle_receive2])
+                 expire_time=datetime.now() + timedelta(seconds=30), temp=True, handlers=[handle_receive2])
     await send_msg2(event, f'您在草行的欠款为{user_data[uid]["loan"]}草\n'
-                           f'请将准备的欠款用你的账号发给bot，不低于1w草每次，限时60s，每还一笔需要重新触发指令，多还的自动存款'
+                           f'请将准备的欠款用你的账号发给bot，不低于1w草每次，限时30s，每还一笔需要重新触发指令，多还的自动存款'
                            f'\n\n!草转让 qq={event.self_id} kusa=')
     await matcher.finish()
 
@@ -411,34 +411,19 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
 @get_divvy.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     async with lock_divvy:
-        m = bank_data['divvy_total']
-        if m == 0:
-            await send_msg2(event, '上期草行没有分红')
-            await matcher.finish()
-        t = bank_data['divvy']
-        if t <= 0:
-            await send_msg2(event, '来晚了，分红被领完了^ ^')
-            await matcher.finish()
-        if isSubAccount(str(event.user_id)):
-            await send_msg2(event, f'[CQ:at,qq={event.get_user_id()}]小号不允许领分红(▼皿▼#)')
-            await matcher.finish()
-        if event.user_id in bank_data['divvy_user_list']:
-            await send_msg2(event, '你已经领过上期分红^ ^')
+        uid = event.get_user_id()
+        kusa = 0
+        outputStr = f"尊贵的股东{uid}:"
+        for dtype in user_data[uid]['divvy']:
+            if user_data[uid]['divvy'][dtype] > 0:
+                kusa += user_data[uid]['divvy'][dtype]
+                outputStr += f'\n您获得了{user_data[uid]["divvy"][dtype]}草的{dtype}分红'
+                user_data[uid]['divvy'][dtype] = 0
+
+        if kusa == 0:
+            await send_msg2(event, '当前没有可领取的分红')
             await matcher.finish()
 
-        bank_data['divvy_user_list'].append(event.user_id)
-        n = 30
-        kusa = random.randint(1, int(0.15 * m * 2 / n))
-        r = await get_user_ratio(bot, event.user_id)
-        outputStr = f'[CQ:at,qq={event.get_user_id()}]获得了{kusa}草的草包'
-        if r > 0:
-            r2 = max((r * 100) ** 2 / 4 / 100, r * 4)
-            r2 = max(min(r2, 1.0), 0.01)
-            red = random.randint(int(0.1 * m * r2), int(0.3 * m * r2))
-            outputStr += (f'\n尊贵的股东{event.user_id}:'
-                          f'\n您额外获得了{red}草的分红')
-            kusa += red
-        bank_data['divvy'] -= kusa
         await send_msg(bot, user_id=chu_id, message=f'!草转让 qq={event.user_id} kusa={kusa}')
         await send_msg2(event, outputStr)
         await savefile()
@@ -447,11 +432,25 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 
 @scheduler.scheduled_job('cron', hour=0)
 async def update_loan():
+    n = 0
     for uid in user_data:
         data = user_data[uid]
         if data['loan'] > 0:
+            n += int(data['loan'] * 0.01)
             data['loan'] = int(data['loan'] * 1.01)
+    await handout_divvy('贷款利息', n)
     await savefile()
+
+
+@scheduler.scheduled_job('cron', hour=11, minute=30)
+async def update_loan():
+    if bank_data['kusa_envelope'] > 0:
+        await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={bot_G3} kusa={bank_data["kusa_envelope"]}')
+        await send_msg(bot_G3, group_id=ceg_group_id, message="!发草包 20")
+        await asyncio.sleep(3)
+        await send_msg(bot_G3, user_id=chu_id, message=f'!草转让 qq={bot_bank} kusa={bank_data["kusa_envelope"]}')
+        bank_data['kusa_envelope'] = 0
+        await savefile()
 
 
 @bank_kusa_query.handle()
@@ -555,14 +554,6 @@ async def handle(matcher: Matcher, event: MessageEvent):
     await matcher.finish()
 
 
-async def get_user_ratio(bot: Bot, user_id: int) -> float:
-    uid = str(user_id)
-    if uid in bot.config.superusers:
-        return 1.0
-    await init_user(uid)
-    return user_data[uid]['last_kusa'] / bank_data['total_storage']
-
-
 async def get_user_true_kusa(bot: Bot, user_id: int) -> int:
     uid = str(user_id)
     if uid in bot.config.superusers:
@@ -578,10 +569,6 @@ async def set_finance(data: list):
     await savefile()
 
 
-async def get_finance() -> int:
-    return bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
-
-
 async def bank_freeze():
     global freeze_flag
     freeze_flag += 1
@@ -594,7 +581,7 @@ async def bank_unfreeze():
 
 
 async def get_bank_divvy():
-    return bank_data['divvy'], bank_data['divvy_total']
+    return bank_data["kusa_envelope"]
 
 
 async def set_bank_kusa(kusa: int):
@@ -605,16 +592,28 @@ async def set_bank_kusa(kusa: int):
 @cnt_divvy.handle()
 async def handle(matcher: Matcher):
     await bank_freeze()
-    async with lock_divvy:
-        bank_data['divvy_total'] = 0
-        m = await get_finance()
-        n = bank_data['total_kusa']
-        if m / n > 0.1:
-            bank_data['divvy_total'] = int(0.1 * m * bank_data['total_storage'] / bank_data['total_kusa'])
-        bank_data['divvy'] = bank_data['divvy_total']
-        bank_data['divvy_user_list'].clear()
-        await savefile()
+    async with (lock_divvy):
+        fn = bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
+        if fn / bank_data['total_kusa'] > 0.1:
+            m = int(0.1 * fn * bank_data['total_storage'] / bank_data['total_kusa'])
+
+            m2 = int(0.15 * m)
+            bank_data['kusa_envelope'] = m2
+
+            m3 = m - m2
+            await handout_divvy('G市', m3)
+
+            await savefile()
     await matcher.finish()
+
+
+async def handout_divvy(divvy_type: str, total_kusa: int):
+    n = 0
+    for uid in user_data:
+        n += user_data[uid]['kusa'] - user_data[uid]['kusa_new']
+    for uid in user_data:
+        r = (user_data[uid]['kusa'] - user_data[uid]['kusa_new']) / n
+        user_data[uid]['divvy'][divvy_type] += int(total_kusa * r)
 
 
 @bank_ratio.handle()

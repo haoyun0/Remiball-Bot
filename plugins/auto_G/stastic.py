@@ -155,7 +155,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
-    d, _ = await get_bank_divvy()
+    d = await get_bank_divvy()
     await set_bank_kusa(kusa - d)
     gift = (kusa - d) // 4
     # 银行流动资金
