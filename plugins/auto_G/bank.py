@@ -529,6 +529,7 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     async with lock_divvy:
         uid = event.get_user_id()
+        await init_user(uid)
         kusa = 0
         outputStr = f"尊贵的股东{uid}:"
         for dtype in user_data[uid]['divvy']:
