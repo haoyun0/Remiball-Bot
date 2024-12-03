@@ -12,3 +12,4 @@ class Config(BaseModel, extra=Extra.ignore):
     group_id_test: int = 0  # 测G群的群号
     group_id_kusa: int = 0  # 测G群的群号
     factory_owner: list[str] = []  # 流动厂分红用户
+    stone_id: int = 0

@@ -482,9 +482,11 @@ async def other_storage_handle2(matcher: Matcher, bot: Bot, state: T_State, arg:
     factory = int(r.group(1)) if r is not None else 0
     factory2 = factory % 7
     ans = int(ans * 1000 * (0.1 + factory2 * 0.05))
-    user_data[uid]['loan'] += ans
     await send_msg(bot, group_id=ceg_group_id,
                    message=f'[CQ:at,qq={uid}]还厂成功，本次费用为{ans}，已计入草行欠款，请用还款指令支付。')
+    if uid in plugin_config.factory_owner or uid == str(plugin_config.stone_id):
+        ans = 0
+    user_data[uid]['loan'] += ans
     await send_msg(bot_G3, user_id=notice_id, message=f'用户{uid}还回了流动生草工厂，费用为{ans}\n'
                                                       f'原草厂{factoryBefore}, 精炼厂{factory}, lv{e}')
     for uid in plugin_config.factory_owner:
