@@ -480,8 +480,8 @@ async def other_storage_handle2(matcher: Matcher, bot: Bot, state: T_State, arg:
 
     r = re.search(r", 草精炼厂 \* (\d+)", arg)
     factory = int(r.group(1)) if r is not None else 0
-    factory %= 7
-    ans = int(ans * 1000 * (0.1 + factory * 0.05))
+    factory2 = factory % 7
+    ans = int(ans * 1000 * (0.1 + factory2 * 0.05))
     user_data[uid]['loan'] += ans
     await send_msg(bot, group_id=ceg_group_id,
                    message=f'[CQ:at,qq={uid}]还厂成功，本次费用为{ans}，已计入草行欠款，请用还款指令支付。')

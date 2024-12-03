@@ -84,6 +84,20 @@ __plugin_meta__ = PluginMetadata(
                 'detail_des': 'TODO'
             },
             {
+                'func': '借流动厂',
+                'trigger_method': '草借厂',
+                'trigger_condition': '用户指令',
+                'brief_des': '向银行借流动厂',
+                'detail_des': 'TODO'
+            },
+            {
+                'func': '还流动厂',
+                'trigger_method': '草还厂',
+                'trigger_condition': '用户指令',
+                'brief_des': '结算流动厂费用',
+                'detail_des': 'TODO'
+            },
+            {
                 'func': '分红',
                 'trigger_method': '分红',
                 'trigger_condition': '用户指令',
