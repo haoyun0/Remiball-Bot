@@ -122,7 +122,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot):
                                 max_kusa = data['record'][uid]
                                 luckiest = uid
                         await send_msg(bot, group_id=data['group_id'],
-                                       message=f'[CQ:at,qq={data["user"]}]发起的草包已被抢完，用时{s // 60}min{s % 60}s\n'
+                                       message=f'[CQ:at,qq={data["user_id"]}]发起的草包已被抢完，用时{s // 60}min{s % 60}s\n'
                                                f'[CQ:at,qq={luckiest}]是手气王，获得了{max_kusa}草')
                         expire.append(data)
 
