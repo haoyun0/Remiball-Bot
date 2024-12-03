@@ -195,10 +195,14 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         uid = event.get_user_id()
         await init_user(uid)
         arg: str = arg.extract_plain_text().strip()
+        mul = 1
+        if arg[-1] == 'm':
+            arg = arg[:-1]
+            mul = 1000000
         if not arg.isnumeric() or int(arg) <= 0:
             await send_msg2(event, '请在指令参数输入要立即取款的数额')
             await matcher.finish()
-        num = int(arg)
+        num = int(arg) * mul
         if num > user_data[uid]['kusa']:
             await send_msg2(event, '余额不足')
             await matcher.finish()
@@ -287,10 +291,14 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
             await send_msg2(event, '请先使用草审批指令审核贷草额度')
             await matcher.finish()
         arg: str = arg.extract_plain_text().strip()
+        mul = 1
+        if arg[-1] == 'm':
+            arg = arg[:-1]
+            mul = 1000000
         if not arg.isnumeric() or int(arg) <= 0:
             await send_msg2(event, '请在指令参数输入要贷草的数额')
             await matcher.finish()
-        num = int(arg)
+        num = int(arg) * mul
         if num + user_data[uid]['loan'] > user_data[uid]['loan_amount']:
             await send_msg2(event, '额度不足，若想借草请联系扫地机')
             await matcher.finish()
@@ -508,7 +516,7 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
     uid = state['uid']
     if '转让成功' in arg:
         n = int(state['kusa'] * 0.01)
-        await handout_divvy('贷款利息', n)
+        await handout_divvy('贷款利息', int(n * 0.6))
         user_data[uid]['loan'] += state['kusa'] + n
         await savefile()
         await send_msg(bot, group_id=ceg_group_id, message=f"[CQ:at,qq={uid}]借草{state['kusa']}成功")
@@ -547,7 +555,7 @@ async def update_loan():
         if data['loan'] > 0:
             n += int(data['loan'] * 0.01)
             data['loan'] = int(data['loan'] * 1.01)
-    await handout_divvy('贷款利息', n)
+    await handout_divvy('贷款利息', int(n * 0.6))
     await savefile()
 
 
@@ -731,6 +739,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 贷草利率计算方式: 
 日利率1%，利滚利，每天0点结算，用途不限
 贷草并非草行收入来源，利率为市场价
+借出时会立刻结算一次利息
+(利息的六成将分红给存款用户)
 
 存草利率计算方式:
 周期(每3天)利率0.6%
