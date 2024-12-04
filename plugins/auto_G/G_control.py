@@ -225,6 +225,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
                  "G帮助: 查看该帮助\n"
                  "G权限: 查看自己能操控的比例\n"
                  "G持有: 查看草行持G及闲草\n"
+                 "测G: 测G简洁版\n"
+                 "G线图: 深G永远在上的版本\n"
                  "G买入: 控制草行闲草平均买入部分G\n"
                  "G卖出: 控制草行卖出部分G\n"
                  "买入卖出参数只支持具体G名称，不支持all")

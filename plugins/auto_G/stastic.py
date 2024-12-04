@@ -8,8 +8,9 @@ from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
+    GroupMessageEvent
 )
-from ..params.message_api import send_msg
+from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
 from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa
@@ -49,6 +50,8 @@ M_reset = on_command('投资初始化',
                      rule=isInBotList([Bank_bot]), permission=SUPERUSER)
 G_reset = on_regex(r'^上周期的G神为',
                    rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
+G_ce = on_command('测G',
+                  rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
 
 
 @get_G.handle()
@@ -94,16 +97,18 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await matcher.finish()
 
 
-async def get_G_data():
+async def get_G_data(last: int = 1):
     tmp = datetime.now()
     date = tmp.strftime("%Y-%m-%d")
     while date not in G_data:
         tmp -= timedelta(days=1)
         date = tmp.strftime("%Y-%m-%d")
-    i = 145
-    while str(i) not in G_data[date]:
-        i -= 1
-    return G_data[date][str(i)]
+    for i in range(145, 0, -1):
+        if str(i) in G_data[date]:
+            last -= 1
+            if last == 0:
+                return G_data[date][str(i)]
+    return None
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
@@ -157,4 +162,19 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     await send_msg(bot, user_id=chu_id, message='!交易总结')
     await asyncio.sleep(5)
     await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await matcher.finish()
+
+
+@G_ce.handle()
+async def handle(matcher: Matcher, event: GroupMessageEvent):
+    now = await get_G_data()
+    last = await get_G_data(2)
+    outputStr = ""
+    for i in range(5):
+        outputStr += f"\n{target[i]}校区: {now[i]}"
+        if last is not None:
+            r = round((now[i] - last[i]) / last[i] * 100, 2)
+            s = '+' if r >= 0 else ""
+            outputStr += f"({s}{r}%)"
+    await send_msg2(event, outputStr.strip())
     await matcher.finish()
