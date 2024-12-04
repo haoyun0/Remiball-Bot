@@ -701,7 +701,11 @@ async def bank_unfreeze():
 
 
 async def get_bank_divvy():
-    return bank_data["kusa_envelope"]
+    ans = bank_data["kusa_envelope"]
+    for uid in user_data:
+        for dtype in user_data[uid]['divvy']:
+            ans += user_data[uid]['divvy'][dtype]
+    return ans
 
 
 async def set_bank_kusa(kusa: int):
@@ -724,6 +728,7 @@ async def handle(matcher: Matcher):
             await handout_divvy('G市', m3)
 
             await savefile()
+    await send_msg(bot_bank, group_id=plugin_config.group_id_test, message='/集资')
     await matcher.finish()
 
 

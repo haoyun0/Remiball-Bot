@@ -48,7 +48,7 @@ G_conclude = on_regex(r'^您本周期的G市交易总结',
 M_reset = on_command('投资初始化',
                      rule=isInBotList([Bank_bot]), permission=SUPERUSER)
 G_reset = on_regex(r'^上周期的G神为',
-                   rule=Message_select_group(ceg_group_id) & isInBotList(G_bot_list), permission=isInUserList([chu_id]))
+                   rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
 
 
 @get_G.handle()
@@ -126,8 +126,6 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 @M_reset.handle()
 async def handle(mather: Matcher, bot: Bot):
-    await send_msg(bot, group_id=test_group_id, message='/集资')
-    await asyncio.sleep(10)
     _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
                  rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
                  expire_time=datetime.now() + timedelta(seconds=5))
@@ -139,17 +137,11 @@ async def handle(mather: Matcher, bot: Bot):
 async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
-    await send_msg(bot, user_id=chu_id, message='!G卖出 all')
-    if bot.self_id == str(Bank_bot):
-        await send_msg(bot, group_id=test_group_id, message='/集资')
-        await asyncio.sleep(10)
-        await update_kusa()
-        _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                     rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
-                     expire_time=datetime.now() + timedelta(seconds=5))
-        await send_msg(bot, user_id=chu_id, message='!仓库')
-    else:
-        await send_msg(bot, user_id=chu_id, message='!交易总结')
+    await update_kusa()
+    _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
+                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
+                 expire_time=datetime.now() + timedelta(seconds=5))
+    await send_msg(bot, user_id=chu_id, message='!仓库')
     await matcher.finish()
 
 
@@ -158,11 +150,11 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     d = await get_bank_divvy()
     await set_bank_kusa(kusa - d)
     gift = (kusa - d) // 4
-    # 银行流动资金
+    # 银行各策略资金
     for uid in bot.config.superusers:
         if uid != str(Bank_bot):
             await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
     await send_msg(bot, user_id=chu_id, message='!交易总结')
-    await asyncio.sleep(10)
+    await asyncio.sleep(5)
     await send_msg(bot, group_id=test_group_id, message='/G_reset')
     await matcher.finish()
