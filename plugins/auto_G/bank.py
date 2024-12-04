@@ -727,6 +727,7 @@ async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], st
 @cnt_divvy.handle()
 async def handle(matcher: Matcher):
     await bank_freeze()
+    bank_data['finance'] = [0, 0, 0, 0]
     async with (lock_divvy):
         fn = bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
         if fn / bank_data['total_kusa'] > 0.1:

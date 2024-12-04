@@ -98,7 +98,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 
 async def get_G_data(last: int = 1):
-    tmp = datetime.now()
+    tmp = datetime.now() + timedelta(minutes=15)
     date = tmp.strftime("%Y-%m-%d")
     while date not in G_data:
         tmp -= timedelta(days=1)
@@ -153,9 +153,9 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     for uid in bot.config.superusers:
         if uid != str(Bank_bot):
             await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
-    await send_msg(bot, user_id=chu_id, message='!交易总结')
-    await asyncio.sleep(5)
-    await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
+    await asyncio.sleep(10)
+    await send_msg(Bank_bot, group_id=test_group_id, message='/G_reset')
     await matcher.finish()
 
 
