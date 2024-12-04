@@ -4,9 +4,9 @@ import math
 import random
 import re
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, Union
 
-from nonebot import require, on_command, on_regex, get_driver
+from nonebot import require, on_command, on_regex, get_driver, get_bot
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventPlainText, T_State, Depends
 from nonebot.adapters.onebot.v11 import (
@@ -97,6 +97,7 @@ except:
             'total_kusa': 0,
             'kusa_envelope': 0,
             'factory_place': 0,
+            'scout': 0,
         }
     }
     user_data = data_raw['user']
@@ -352,7 +353,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
 
 
 @user_return_factory.handle(parameterless=[Depends(freeze_depend)])
-async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
+async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = CommandArg()):
     if bank_data['factory_place'] != event.user_id:
         await send_msg2(event, "你不需要还厂")
         await matcher.finish()
@@ -362,10 +363,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
                                "例如信息员lv7，买了333的生草工厂自动工艺I，则输入/草还厂 8\n"
                                "请注意诚信，否则可能上银行失信名单")
         await matcher.finish()
-    _ = on_regex(r'当前拥有草: \d+\n', state={'uid': event.get_user_id(), 'level': int(arg)},
-                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message='!仓库')
+    await scout_storage(bot_bank, storage_handle)
 
 
 async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
@@ -401,16 +399,11 @@ async def handle_receive2(matcher: Annotated[Matcher, Depends(handleOnlyOnce, us
 
 
 async def handle_receive3(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
-                          bot: Bot, arg: str = EventPlainText()):
+                          arg: str = EventPlainText()):
     r = re.search(r"^.*?\((\d+)\)转让了(\d+)个草给你！", arg)
     uid = r.group(1)
     await init_user(uid)
-    await send_msg(bot, user_id=chu_id, message=f'!购买 侦察凭证 1')
-    _ = on_regex(r'当前拥有草: \d+\n',
-                 rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                 temp=True, handlers=[other_storage_handle],
-                 state={'user_id': uid}, expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={uid}')
+    await scout_storage(uid, other_storage_handle, state={'user_id': uid})
     await matcher.finish()
 
 
@@ -459,11 +452,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = 
         if num >= factory_num:
             bank_data['factory_place'] = 0
             await savefile()
-            _ = on_regex(r'当前拥有草: \d+\n',
-                         rule=PRIVATE() & isInBotList([bot_bank]), permission=isInUserList([chu_id]), block=True,
-                         temp=True, handlers=[other_storage_handle2], expire_time=datetime.now() + timedelta(seconds=5),
-                         state={'uid': uid, 'level': state['level']})
-            await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={uid}')
+            await scout_storage(uid, other_storage_handle2, state={'uid': uid, 'level': state['level']})
             await matcher.finish()
     await send_msg(bot, group_id=ceg_group_id, message=f"[CQ:at,qq={uid}]尚未收到流动生草工厂")
     await matcher.finish()
@@ -711,6 +700,28 @@ async def get_bank_divvy():
 async def set_bank_kusa(kusa: int):
     bank_data['total_kusa'] = kusa
     await savefile()
+
+
+async def scout_storage(uid: Union[str, int], func, state=None):
+    if uid == 0 or uid == '0':
+        return
+    if int(uid) not in [plugin_config.bot_g0, plugin_config.bot_g1, plugin_config.bot_g2, plugin_config.bot_g3]:
+        bot = bot_bank
+        msg = f'!仓库 qq={uid}'
+        if bank_data['scout'] <= 100:
+            bank_data['scout'] += 100
+            await send_msg(bot_bank, user_id=chu_id, message=f'!购买 侦察凭证 100')
+        bank_data['scout'] -= 1
+        await savefile()
+    else:
+        bot = get_bot(str(uid))
+        msg = '!仓库'
+
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([bot]), permission=isInUserList([chu_id]), block=True,
+                 temp=True, handlers=[func],
+                 state=state, expire_time=datetime.now() + timedelta(seconds=5))
+    await send_msg(bot, user_id=chu_id, message=msg)
 
 
 @cnt_divvy.handle()

@@ -13,7 +13,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa
+from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage
 from .G_pic import draw_G_pic
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
@@ -130,23 +130,17 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 
 @M_reset.handle()
-async def handle(mather: Matcher, bot: Bot):
-    _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message='!仓库')
+async def handle(mather: Matcher):
+    await scout_storage(Bank_bot, storage_handle)
     await mather.finish()
 
 
 @G_reset.handle()
-async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+async def handle(matcher: Matcher, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
     await update_kusa()
-    _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message='!仓库')
+    await scout_storage(Bank_bot, storage_handle)
     await matcher.finish()
 
 

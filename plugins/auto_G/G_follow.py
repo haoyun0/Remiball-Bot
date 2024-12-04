@@ -1,8 +1,7 @@
 import json
 import re
-from datetime import datetime, timedelta
 
-from nonebot import on_regex, require, get_driver, on_command
+from nonebot import require, get_driver, on_command
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText, CommandArg
 from nonebot.adapters.onebot.v11 import (
@@ -11,10 +10,10 @@ from nonebot.adapters.onebot.v11 import (
     MessageEvent
 )
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import PRIVATE, isInBotList
-from ..params.permission import isInUserList, SUPERUSER
+from ..params.rule import isInBotList
+from ..params.permission import SUPERUSER
 from .stastic import get_G_data
-from .bank import bank_freeze
+from .bank import bank_freeze, scout_storage
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -44,7 +43,7 @@ async def savefile():
 
 
 @set_follow.handle()
-async def handle(matcher: Matcher, bot: Bot, event: MessageEvent, arg: Message = CommandArg()):
+async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
     global follow_id_list
     args = arg.extract_plain_text().strip().split()
     if len(args) == 0:
@@ -68,24 +67,15 @@ async def handle():
 @scheduler.scheduled_job('cron', minute='29,59', second=20)
 async def handle():
     await bank_freeze()
-    _ = on_regex(r'当前拥有草: \d+\n',
-                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
-                 temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(GBot, user_id=chu_id, message='!仓库')
+    await scout_storage(GBot, storage_handle)
 
 
-async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
     global my_kusa, follow_id_num
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     follow_id_num = 0
 
-    if follow_id_list[0] == 0:
-        await matcher.finish()
-
-    _ = on_regex(r'当前拥有草: \d+\n',
-                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
-                 temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[0]}')
+    await scout_storage(follow_id_list[0], storage_handle_other)
     await matcher.finish()
 
 
@@ -104,10 +94,7 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
     if tot / (tot + kusa) < 0.3:
         follow_id_num += 1
         if follow_id_num < len(follow_id_list):
-            _ = on_regex(r'当前拥有草: \d+\n',
-                         rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
-                         temp=True, handlers=[storage_handle_other], expire_time=datetime.now() + timedelta(seconds=5))
-            await send_msg(bot, user_id=chu_id, message=f'!仓库 qq={follow_id_list[follow_id_num]}')
+            await scout_storage(follow_id_list[follow_id_num], storage_handle_other)
             await matcher.finish()
         else:
             return
