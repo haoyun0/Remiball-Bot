@@ -4,9 +4,9 @@ import math
 import random
 import re
 from datetime import datetime, timedelta
-from typing import Annotated, Union
+from typing import Annotated, Union, Callable, Awaitable
 
-from nonebot import require, on_command, on_regex, get_driver, get_bot
+from nonebot import require, on_command, on_regex, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import CommandArg, EventPlainText, T_State, Depends
 from nonebot.adapters.onebot.v11 import (
@@ -423,7 +423,7 @@ async def handle_receive4(matcher: Annotated[Matcher, Depends(handleOnlyOnce, us
     await matcher.finish()
 
 
-async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
+async def other_storage_handle(matcher: Matcher, state: T_State, arg: str = EventPlainText()):
     uid = state['user_id']
     result = 0
     r = re.search(r", 草精炼厂 \* (\d+)", arg)
@@ -440,7 +440,7 @@ async def other_storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: 
         result += int(120 * 1.04 ** (grass - 1) * 10)
     user_data[uid]['loan_amount'] = result
     await savefile()
-    await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]经过审批，您在草行的借草额度为{result}草')
+    await send_msg(bot_bank, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]经过审批，您在草行的借草额度为{result}草')
     await matcher.finish()
 
 
@@ -458,7 +458,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, state: T_State, arg: str = 
     await matcher.finish()
 
 
-async def other_storage_handle2(matcher: Matcher, bot: Bot, state: T_State, arg: str = EventPlainText()):
+async def other_storage_handle2(matcher: Matcher, state: T_State, arg: str = EventPlainText()):
     uid = state['uid']
     e = state['level']
     r = re.search(r", 生草工厂 \* (\d+)", arg)
@@ -471,7 +471,7 @@ async def other_storage_handle2(matcher: Matcher, bot: Bot, state: T_State, arg:
     factory = int(r.group(1)) if r is not None else 0
     factory2 = factory % 7
     ans = int(ans * 1000 * (0.1 + factory2 * 0.05))
-    await send_msg(bot, group_id=ceg_group_id,
+    await send_msg(bot_bank, group_id=ceg_group_id,
                    message=f'[CQ:at,qq={uid}]还厂成功，本次费用为{ans}，已计入草行欠款，请用还款指令支付。')
     if uid in plugin_config.factory_owner or uid == str(plugin_config.stone_id):
         ans = 0
@@ -702,7 +702,7 @@ async def set_bank_kusa(kusa: int):
     await savefile()
 
 
-async def scout_storage(uid: Union[str, int], func, state=None):
+async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], state=None):
     if uid == 0 or uid == '0':
         return
     if int(uid) not in [plugin_config.bot_g0, plugin_config.bot_g1, plugin_config.bot_g2, plugin_config.bot_g3]:
@@ -714,7 +714,7 @@ async def scout_storage(uid: Union[str, int], func, state=None):
         bank_data['scout'] -= 1
         await savefile()
     else:
-        bot = get_bot(str(uid))
+        bot = int(uid)
         msg = '!仓库'
 
     _ = on_regex(r'当前拥有草: \d+\n',

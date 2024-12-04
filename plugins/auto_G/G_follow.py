@@ -79,7 +79,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
     await matcher.finish()
 
 
-async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
     G_data = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     global my_kusa, follow_id_num
@@ -107,5 +107,5 @@ async def storage_handle_other(matcher: Matcher, bot: Bot, arg: str = EventPlain
             t = target[i]
             coin = int(my_kusa * c[i])
             invest = int(coin / G_data[i])
-            await send_msg(bot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+            await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
     await matcher.finish()
