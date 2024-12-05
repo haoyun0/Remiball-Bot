@@ -291,16 +291,22 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
     async with lock_send_kusa:
         uid = event.get_user_id()
         await init_user(uid)
+        if user_data[uid]['loan_free'] > 0:
+            await send_msg2(event, '享有免息者不能自助借款，需要请联系工作人员')
+            await matcher.finish()
         if user_data[uid]['loan_amount'] == 0:
             await send_msg2(event, '请先使用草审批指令审核贷草额度')
             await matcher.finish()
         arg: str = arg.extract_plain_text().strip()
+        if not arg:
+            await send_msg2(event, '请在指令参数输入要贷草的数额\n利率请使用/草利率 指令查看')
+            await matcher.finish()
         mul = 1
         if arg[-1] == 'm':
             arg = arg[:-1]
             mul = 1000000
         if not arg.isnumeric() or int(arg) <= 0:
-            await send_msg2(event, '请在指令参数输入要贷草的数额')
+            await send_msg2(event, '请在指令参数输入要贷草的数额\n利率请使用/草利率 指令查看')
             await matcher.finish()
         num = int(arg) * mul
         if num + user_data[uid]['loan'] > user_data[uid]['loan_amount']:
@@ -510,9 +516,6 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
     uid = state['uid']
     if '转让成功' in arg:
         n = int(state['kusa'] * 0.01)
-        if user_data[uid]['loan_free'] > 0:
-            user_data[uid]['loan_free'] -= 1
-            n = 0
         await handout_divvy('贷款利息', int(n * 0.6))
         user_data[uid]['loan'] += state['kusa'] + n
         await savefile()
