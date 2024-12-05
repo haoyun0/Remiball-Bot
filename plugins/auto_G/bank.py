@@ -597,12 +597,13 @@ async def handle(matcher: Matcher, event: MessageEvent):
     for uid in user_data:
         if user_data[uid]['loan'] > 0:
             tot += user_data[uid]['loan']
-            rank.append((user_data[uid]['loan'], uid))
+            rank.append((user_data[uid]['loan'], uid, user_data[uid]['loan_free']))
     outputStr = f"总欠款为{tot}: "
     rank.sort(reverse=True)
     num = min(25, len(rank))
     for i in range(num):
-        outputStr += f'\n{rank[i][1]} : {rank[i][0]}'
+        free = f"({rank[i][2]})" if rank[i][2] > 0 else ""
+        outputStr += f'\n{rank[i][1]}{free} : {rank[i][0]}'
     if len(rank) > 25:
         outputStr += '\n(只展示前25)'
     await send_msg2(event, outputStr)
