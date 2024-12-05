@@ -143,6 +143,13 @@ __plugin_meta__ = PluginMetadata(
                 'brief_des': '手动收还款时给用户销账',
                 'detail_des': 'TODO'
             },
+            {
+                'func': '免息',
+                'trigger_method': '草免息',
+                'trigger_condition': '超管指令',
+                'brief_des': '给用户免息次数',
+                'detail_des': 'TODO'
+            },
         ],
         'menu_template': 'default'
     }

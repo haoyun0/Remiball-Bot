@@ -78,6 +78,8 @@ bank_freeze = on_command('草维护',
                          rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_kusa_update = on_command('草结算',
                               rule=isInBotList([bot_bank]), permission=SUPERUSER)
+bank_loan_free = on_command('草免息',
+                            rule=isInBotList([bot_bank]), permission=SUPERUSER)
 # 并非指令
 cnt_divvy = on_regex('^新的G周期开始了！上个周期的G已经自动兑换为草。$',
                      rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]),
@@ -109,6 +111,7 @@ template_user = {
     'loan': 0,
     'kusa_out': 0,
     'loan_amount': 0,
+    'loan_free': 0,
     'last_kusa': 0,
     'divvy': {
         '贷款利息': 0,
@@ -507,6 +510,9 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
     uid = state['uid']
     if '转让成功' in arg:
         n = int(state['kusa'] * 0.01)
+        if user_data[uid]['loan_free'] > 0:
+            user_data[uid]['loan_free'] -= 1
+            n = 0
         await handout_divvy('贷款利息', int(n * 0.6))
         user_data[uid]['loan'] += state['kusa'] + n
         await savefile()
@@ -545,6 +551,9 @@ async def update_loan():
     for uid in user_data:
         data = user_data[uid]
         if data['loan'] > 0:
+            if data['loan_free'] > 0:
+                data['loan_free'] -= 1
+                continue
             n += int(data['loan'] * 0.01)
             data['loan'] = int(data['loan'] * 1.01)
     await handout_divvy('贷款利息', int(n * 0.6))
@@ -612,6 +621,7 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     outputStr += f'\n其中，有{data["kusa_new"]}草是新存入的' if data['kusa_new'] > 0 else ''
     outputStr += f'\n上期存款为{data["last_kusa"]}草'
     outputStr += f'\n在草行的欠款为{data["loan"]}草' if data['loan'] > 0 else '\n在草行没有欠款'
+    outputStr += f'\n在草行有{data["loan_free"]}次免息次数' if data['loan_free'] > 0 else ''
     outputStr += f'\n已预约取出{data["kusa_out"]}草' if data['kusa_out'] > 0 else ''
     await send_msg2(event, outputStr)
     await matcher.finish()
@@ -660,6 +670,18 @@ async def handle(matcher: Matcher, event: MessageEvent):
         outputStr = '开始草行维护'
         await bank_freeze()
     await send_msg2(event, outputStr)
+    await matcher.finish()
+
+
+@bank_loan_free.handle()
+async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
+    args = arg.extract_plain_text().strip().split()
+    uid = args[0]
+    times = int(args[1])
+    await init_user(uid)
+    user_data[uid]['loan_free'] += times
+    await savefile()
+    await send_msg2(event, f'给用户{uid}记免息{times}次成功')
     await matcher.finish()
 
 
@@ -745,6 +767,8 @@ async def handle(matcher: Matcher):
 
 
 async def handout_divvy(divvy_type: str, total_kusa: int):
+    if total_kusa == 0:
+        return
     n = 0
     for uid in user_data:
         n += user_data[uid]['kusa'] - user_data[uid]['kusa_new']
@@ -766,5 +790,8 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 周期(每3天)利率0.6%
 新存入的草从下下次G周期结算开始计算（强调：下下次），每次结算自动更新存款，也是利滚利形式
 该模式下折合年化利率约107%
+
+超过额度的借款可以找扫地机谈
+用于基建的萌新可获得一定时间的免息
 """.strip())
     await matcher.finish()
