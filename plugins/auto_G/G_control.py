@@ -11,7 +11,7 @@ from nonebot.adapters.onebot.v11 import (
     GroupMessageEvent,
 )
 from ..params.message_api import send_msg, send_msg2
-from ..params.rule import isInBotList, Message_select_group
+from ..params.rule import isInBotList, isInGroupList
 from ..params.permission import SUPERUSER
 from .stastic import get_G_data
 from .bank import get_user_true_kusa, freeze_depend, scout_storage
@@ -24,20 +24,21 @@ plugin_config = Config.parse_obj(get_driver().config)
 chu_id = plugin_config.bot_chu
 GBot = plugin_config.bot_g2
 ceg_group_id = plugin_config.group_id_kusa
+test_group_id = plugin_config.group_id_test
 target = ['东', '南', '北', '珠海', '深圳']
 lock_operate = asyncio.Lock()
 
 invest_reset = on_command('G_reset', rule=isInBotList([GBot]), permission=SUPERUSER)
 G_permit = on_command('G权限',
-                      rule=Message_select_group(ceg_group_id) & isInBotList([GBot]))
+                      rule=isInGroupList([ceg_group_id, test_group_id]) & isInBotList([GBot]))
 G_buy_in = on_command('G买入',
-                      rule=Message_select_group(ceg_group_id) & isInBotList([GBot]))
+                      rule=isInGroupList([ceg_group_id, test_group_id]) & isInBotList([GBot]))
 G_sell_out = on_command('G卖出',
-                        rule=Message_select_group(ceg_group_id) & isInBotList([GBot]))
+                        rule=isInGroupList([ceg_group_id, test_group_id]) & isInBotList([GBot]))
 G_hold_on = on_command('G持有', aliases={'G拥有'},
-                       rule=Message_select_group(ceg_group_id) & isInBotList([GBot]))
+                       rule=isInGroupList([ceg_group_id, test_group_id]) & isInBotList([GBot]))
 G_help = on_command('G帮助',
-                    rule=Message_select_group(ceg_group_id) & isInBotList([GBot]))
+                    rule=isInGroupList([ceg_group_id, test_group_id]) & isInBotList([GBot]))
 
 try:
     with open(r'C:/Data/G_control.txt', 'r', encoding='utf-8') as f:
@@ -94,6 +95,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 @G_hold_on.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
     G = await get_G_data()
+    G_last = await get_G_data(2)
     tot = 0
     outputStr = f'空闲的草: {G_data["kusa"]}'
     outputStr2 = '\n拥有的G:'
@@ -101,6 +103,9 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
         t = target[i]
         if G_data['own'][i] > 0:
             outputStr2 += f'\n{t[0]}: {round(G[i] * G_data["own"][i] / 1000000)}m'
+            if G_last is not None:
+                sign = '+' if G[i] >= G_last[i] else ""
+                outputStr2 += f"({sign}{round((G[i] - G_last[i]) / G_last[i] * 100, 2)}%)"
             tot += int(G[i] * G_data["own"][i])
     outputStr2 += f'\n共计{round(tot / 100000000, 1)}亿草的G'
     outputStr += outputStr2 if tot > 0 else ""
