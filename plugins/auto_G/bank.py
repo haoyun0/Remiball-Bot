@@ -363,7 +363,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
                                "例如信息员lv7，买了333的生草工厂自动工艺I，则输入/草还厂 8\n"
                                "请注意诚信，否则可能上银行失信名单")
         await matcher.finish()
-    await scout_storage(bot_bank, storage_handle)
+    await scout_storage(bot_bank, storage_handle, state={'uid': event.get_user_id(), 'level': int(arg)})
 
 
 async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use_cache=False)],
