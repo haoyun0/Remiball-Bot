@@ -757,7 +757,7 @@ async def handle(matcher: Matcher):
     async with (lock_divvy):
         fn = bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
         if fn / bank_data['total_kusa'] > 0.1:
-            m = int(0.1 * fn * bank_data['total_storage'] / bank_data['total_kusa'])
+            m = int(0.15 * fn * bank_data['total_storage'] / bank_data['total_kusa'])
 
             m2 = int(0.15 * m)
             bank_data['kusa_envelope'] = m2
