@@ -728,6 +728,10 @@ async def set_bank_kusa(kusa: int):
     await savefile()
 
 
+async def set_bank_scout(num: int):
+    bank_data['scout'] = num
+
+
 async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], state=None):
     if uid == 0 or uid == '0':
         return
@@ -767,6 +771,8 @@ async def handle(matcher: Matcher):
 
             await savefile()
     await send_msg(bot_bank, group_id=plugin_config.group_id_test, message='/集资')
+    await asyncio.sleep(10)
+    await send_msg(bot_bank, group_id=ceg_group_id, message=f'!仓库 qq={chu_id}')
     await matcher.finish()
 
 

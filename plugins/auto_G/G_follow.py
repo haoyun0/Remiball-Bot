@@ -13,7 +13,7 @@ from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList
 from ..params.permission import SUPERUSER
 from .stastic import get_G_data
-from .bank import bank_freeze, scout_storage
+from .bank import bank_freeze, scout_storage, set_bank_scout
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -74,6 +74,8 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
     global my_kusa, follow_id_num
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     follow_id_num = 0
+    scout_num = int(re.search(r'侦察凭证 \* (\d+)', arg).group(1))
+    await set_bank_scout(scout_num)
 
     await scout_storage(follow_id_list[0], storage_handle_other)
     await matcher.finish()

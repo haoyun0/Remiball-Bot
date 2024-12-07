@@ -49,6 +49,7 @@ except:
         "kusa": 0
     }
 operate_data = {}
+limit = 50000000
 
 
 async def savefile():
@@ -84,7 +85,7 @@ async def handle():
 @G_permit.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         outputStr = '没有权限'
     else:
         outputStr = f'您每次最多可以控制{m}草的G'
@@ -116,7 +117,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 @G_buy_in.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         await send_msg2(event, '没有权限')
         await matcher.finish()
     if G_data["kusa"] < 1000000:
@@ -166,7 +167,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 @G_sell_out.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         await send_msg2(event, '没有权限')
         await matcher.finish()
     if not check_operate(event.user_id):
