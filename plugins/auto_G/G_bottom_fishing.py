@@ -90,4 +90,6 @@ async def handle():
                 G_data["value"][i] = G[i]
                 G_data["times_total"] += 1
                 await send_msg(GBot, user_id=chu_id, message=f'!G买入 {target[i][0]} {invest}')
+    outputStr = f'{G_data["times"]}, {G_data["times_total"]}/{divide * 5}'
+    await send_msg(plugin_config.bot_main, user_id=plugin_config.bot_g1, message=outputStr)
     await savefile()

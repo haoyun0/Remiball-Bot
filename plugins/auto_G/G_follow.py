@@ -5,7 +5,6 @@ from nonebot import require, get_driver, on_command
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText, CommandArg
 from nonebot.adapters.onebot.v11 import (
-    Bot,
     Message,
     MessageEvent
 )
@@ -104,10 +103,13 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
         for i in range(5):
             c[i] /= tot
 
+    outputStr = f"followers:{follow_id_list[follow_id_num]}\n"
     for i in range(5):
         if c[i] > 0:
             t = target[i]
             coin = int(my_kusa * c[i])
             invest = int(coin / G_data[i])
             await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+        outputStr += f"{round(c[i] * 100, 1)}%, "
+    await send_msg(GBot, user_id=plugin_config.bot_g1, message=outputStr[:-2])
     await matcher.finish()
