@@ -11,4 +11,5 @@ class Config(BaseModel, extra=Extra.ignore):
     bot_g3: int = 0  # 其他Bot的qq号4
     group_id_test: int = 0  # 测G群的群号
     group_id_kusa: int = 0  # 测G群的群号
-    g_follow_accounts: set[str] = set()  # 跟G策略的qq号
+    factory_owner: list[str] = []  # 流动厂分红用户
+    stone_id: int = 0

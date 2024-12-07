@@ -42,3 +42,17 @@ def isInBotList(bots: list[int]) -> Rule:
             return True
         return False
     return Rule(_enable)
+
+
+def isInGroupList(groups: list[int]) -> Rule:
+    """
+    只在特定群聊
+    :param groups: list[int] 群号列表
+    :return: Rule
+    """
+    async def _enable(event: MessageEvent) -> bool:
+        if event.message_type == 'group':
+            if event.group_id in groups:
+                return True
+        return False
+    return Rule(_enable)

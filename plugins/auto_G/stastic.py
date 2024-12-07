@@ -8,11 +8,13 @@ from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
+    GroupMessageEvent
 )
-from ..params.message_api import send_msg
+from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze
+from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage
+from .G_pic import draw_G_pic
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -47,7 +49,9 @@ G_conclude = on_regex(r'^您本周期的G市交易总结',
 M_reset = on_command('投资初始化',
                      rule=isInBotList([Bank_bot]), permission=SUPERUSER)
 G_reset = on_regex(r'^上周期的G神为',
-                   rule=Message_select_group(ceg_group_id) & isInBotList(G_bot_list), permission=isInUserList([chu_id]))
+                   rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
+G_ce = on_command('测G',
+                  rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
 
 
 @get_G.handle()
@@ -75,13 +79,15 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
     G_data[date][str(turn_new)] = new_data
     await savefile()
+    await draw_G_pic(G_data, reverse=float(value_all.group(5)) < 120)
 
     try:
         m: list[int] = [finance[G_bot_list[0]], finance[G_bot_list[1]], finance[G_bot_list[2]], finance[G_bot_list[3]]]
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += f"\n无形: {m[0]}m, 有形: {m[1]}m, 跟G: {m[2]}m, 抄底: {m[3]}m"
+        outputStr += (f"\n有形: {m[2]}m, 跟G: {m[0]}m,"
+                      f"无形: {m[1]}m, 抄底: {m[3]}m")
     except:
         await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
@@ -91,16 +97,18 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await matcher.finish()
 
 
-async def get_G_data():
-    tmp = datetime.now()
+async def get_G_data(last: int = 1):
+    tmp = datetime.now() + timedelta(minutes=15)
     date = tmp.strftime("%Y-%m-%d")
     while date not in G_data:
         tmp -= timedelta(days=1)
         date = tmp.strftime("%Y-%m-%d")
-    i = 145
-    while str(i) not in G_data[date]:
-        i -= 1
-    return G_data[date][str(i)]
+    for i in range(145, 0, -1):
+        if str(i) in G_data[date]:
+            last -= 1
+            if last == 0:
+                return G_data[date][str(i)]
+    return None
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
@@ -122,42 +130,45 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
 
 @M_reset.handle()
-async def handle(mather: Matcher, bot: Bot):
-    await send_msg(bot, group_id=test_group_id, message='/集资')
-    await asyncio.sleep(10)
-    _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                 rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
-                 expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message='!仓库')
+async def handle(mather: Matcher):
+    await scout_storage(Bank_bot, storage_handle)
     await mather.finish()
 
 
 @G_reset.handle()
-async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
+async def handle(matcher: Matcher, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
-    await send_msg(bot, user_id=chu_id, message='!G卖出 all')
-    if bot.self_id == str(Bank_bot):
-        await send_msg(bot, group_id=test_group_id, message='/集资')
-        await asyncio.sleep(10)
-        await update_kusa()
-        _ = on_regex(r'当前拥有草: \d+\n', temp=True, handlers=[storage_handle],
-                     rule=PRIVATE() & isInBotList([Bank_bot]), permission=isInUserList([chu_id]), block=True,
-                     expire_time=datetime.now() + timedelta(seconds=5))
-        await send_msg(bot, user_id=chu_id, message='!仓库')
-    else:
-        await send_msg(bot, user_id=chu_id, message='!交易总结')
+    await update_kusa()
+    await scout_storage(Bank_bot, storage_handle)
     await matcher.finish()
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
-    gift = kusa // 4
-    # 银行流动资金
+    d = await get_bank_divvy()
+    await set_bank_kusa(kusa - d)
+    gift = (kusa - d) // 4
+    # 银行各策略资金
     for uid in bot.config.superusers:
         if uid != str(Bank_bot):
             await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
-    await send_msg(bot, user_id=chu_id, message='!交易总结')
+    await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
     await asyncio.sleep(10)
-    await send_msg(bot, group_id=test_group_id, message='/G_reset')
+    await send_msg(Bank_bot, group_id=test_group_id, message='/G_reset')
+    await matcher.finish()
+
+
+@G_ce.handle()
+async def handle(matcher: Matcher, event: GroupMessageEvent):
+    now = await get_G_data()
+    last = await get_G_data(2)
+    outputStr = ""
+    for i in range(5):
+        outputStr += f"\n{target[i]}校区: {now[i]}"
+        if last is not None:
+            r = round((now[i] - last[i]) / last[i] * 100, 2)
+            s = '+' if r >= 0 else ""
+            outputStr += f"({s}{r}%)"
+    await send_msg2(event, outputStr.strip())
     await matcher.finish()

@@ -1,18 +1,19 @@
 import asyncio
 import json
 import re
-from datetime import datetime, timedelta
 
-from nonebot import on_command, on_regex, require, get_driver
+from nonebot import on_command, require, get_driver
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
 )
+
 from ..params.message_api import send_msg
-from ..params.rule import isInBotList, PRIVATE
-from ..params.permission import SUPERUSER, isInUserList
+from ..params.rule import isInBotList
+from ..params.permission import SUPERUSER
 from .stastic import get_G_data
+from .bank import scout_storage
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -39,7 +40,7 @@ except:
         "kusa_once": 0
     }
 divide = 20
-init_times = 15
+init_times = 18
 
 
 async def savefile():
@@ -50,10 +51,7 @@ async def savefile():
 @invest_reset.handle()
 async def handle(matcher: Matcher, bot: Bot):
     await send_msg(bot, user_id=chu_id, message='!G卖出 all')
-    _ = on_regex(r'当前拥有草: \d+\n',
-                 rule=PRIVATE() & isInBotList([GBot]), permission=isInUserList([chu_id]), block=True,
-                 temp=True, handlers=[storage_handle], expire_time=datetime.now() + timedelta(seconds=5))
-    await send_msg(bot, user_id=chu_id, message='!仓库')
+    await scout_storage(GBot, storage_handle)
     await matcher.finish()
 
 

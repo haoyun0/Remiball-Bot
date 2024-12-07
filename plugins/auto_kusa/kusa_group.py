@@ -60,7 +60,8 @@ lock_send = asyncio.Lock()
 @gather.handle()
 async def handle(matcher: Matcher, event: MessageEvent, bot: Bot):
     global gather_account
-    _ = on_regex(r'当前拥有草: \d+\n', rule=PRIVATE() & isInUserList([chu_id]) & isInBotList([int(bot.self_id)]),
+    _ = on_regex(r'当前拥有草: \d+\n',
+                 rule=PRIVATE() & isInBotList([int(bot.self_id)]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[storage_handle])
     gather_account = event.user_id
     await send_msg(bot, user_id=chu_id, message='!仓库')
