@@ -49,6 +49,7 @@ async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use
             'remain_kusa': kusa_num,
             'nums': state['nums'],
             'remain_num': state['nums'],
+            'user_id': uid,
             'record': {}
         }
         envelopes.append(data)
@@ -75,7 +76,6 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         await matcher.finish()
     dic = {
         'group_id': event.group_id,
-        'user_id': event.user_id,
         'nums': num
     }
     _ = on_regex(r"\(\d+\)转让了\d+个草给你！", state=dic,
