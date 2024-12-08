@@ -781,9 +781,9 @@ async def handout_divvy(divvy_type: str, total_kusa: int):
         return
     n = 0
     for uid in user_data:
-        n += user_data[uid]['kusa'] - user_data[uid]['kusa_new']
+        n += user_data[uid]['last_kusa']
     for uid in user_data:
-        r = (user_data[uid]['kusa'] - user_data[uid]['kusa_new']) / n
+        r = user_data[uid]['last_kusa'] / n
         user_data[uid]['divvy'][divvy_type] += int(total_kusa * r)
 
 
