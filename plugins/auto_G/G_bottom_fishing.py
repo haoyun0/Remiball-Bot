@@ -40,7 +40,7 @@ except:
         "kusa_once": 0
     }
 divide = 20
-init_times = 18
+init_times = 20
 
 
 async def savefile():
@@ -70,7 +70,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     await matcher.finish()
 
 
-@scheduler.scheduled_job('cron', minute='1,31')
+@scheduler.scheduled_job('cron', minute='0,30', second=30)
 async def handle():
     G = await get_G_data()
 
