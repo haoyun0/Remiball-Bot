@@ -17,6 +17,7 @@ chu_id = plugin_config.bot_chu
 GBot = plugin_config.bot_g2
 
 target = ['东', '南', '北', '珠海', '深圳']
+systemRandom = random.SystemRandom()
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
@@ -37,7 +38,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
     p = []
     tot = 0
     for i in range(5):
-        x = random.random() + 2
+        x = systemRandom.random() + 2
         tot += x
         p.append(x)
 

@@ -86,8 +86,8 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += (f"\n有形: {m[2]}m, 跟G: {m[0]}m,"
-                      f"无形: {m[1]}m, 抄底: {m[3]}m")
+        outputStr += (f"\n跟G: {m[0]}m, 抄底: {m[3]}m"
+                      f"\n无形: {m[1]}m, 随机: {m[2]}m")
     except:
         await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
