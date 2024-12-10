@@ -65,7 +65,7 @@ async def handle(matcher: Matcher, bot: Bot):
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    G = await get_G_data()
+    G, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     G_data['kusa'] = kusa
     for i in range(5):
@@ -95,8 +95,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 
 @G_hold_on.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    G = await get_G_data()
-    G_last = await get_G_data(2)
+    G, _ = await get_G_data()
+    G_last, _ = await get_G_data(2)
     tot = 0
     outputStr = f'空闲的草: {G_data["kusa"]}'
     outputStr2 = '\n拥有的G:'
@@ -127,7 +127,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
     async with lock_operate:
-        G = await get_G_data()
+        G, _ = await get_G_data()
         args = arg.extract_plain_text().strip().split()
         n = len(args)
         k = 0
@@ -175,7 +175,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await matcher.finish()
 
     async with lock_operate:
-        G = await get_G_data()
+        G, _ = await get_G_data()
         args = arg.extract_plain_text().strip().split()
         k = 0
         operate = {}

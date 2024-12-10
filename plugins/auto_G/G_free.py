@@ -30,7 +30,7 @@ async def handle(matcher: Matcher, bot: Bot):
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    G_data = await get_G_data()
+    G_data, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     for i in range(5):
         invest = int(kusa / 5 / G_data[i])

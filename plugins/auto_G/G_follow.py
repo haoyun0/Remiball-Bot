@@ -81,7 +81,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
 
 
 async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
-    G_data = await get_G_data()
+    G_data, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     global my_kusa, follow_id_num
     tot = 0

@@ -39,7 +39,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
 
 
 async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
-    G_data = await get_G_data()
+    G_data, turn = await get_G_data()
 
     global kusa
     tot = 0
@@ -49,6 +49,8 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
         if x is not None:
             c[i] = int(int(x.group(1)) * G_data[i] * (0.5 + systemRandom.random()))
             tot += c[i]
+            if systemRandom.random() < 1.2 - turn / 200:
+                c[i] = 0
 
     for i in range(5):
         c[i] /= tot

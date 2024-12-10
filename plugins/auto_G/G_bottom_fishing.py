@@ -56,7 +56,7 @@ async def handle(matcher: Matcher, bot: Bot):
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    G = await get_G_data()
+    G, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     G_data["times_total"] = init_times * 5
     G_data["kusa_once"] = int(kusa / 5 / divide)
@@ -72,7 +72,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
 
 @scheduler.scheduled_job('cron', minute='0,30', second=30)
 async def handle():
-    G = await get_G_data()
+    G, _ = await get_G_data()
 
     for i in range(5):
         if (G[i] - G_data["value"][i]) / G_data["value"][i] > target_change[i] / 6:

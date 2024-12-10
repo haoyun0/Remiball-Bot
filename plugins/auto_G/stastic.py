@@ -2,6 +2,7 @@ import asyncio
 import json
 import re
 from datetime import datetime, timedelta
+from typing import Union
 
 from nonebot import require, on_regex, on_command, logger, get_driver
 from nonebot.matcher import Matcher
@@ -97,7 +98,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await matcher.finish()
 
 
-async def get_G_data(last: int = 1):
+async def get_G_data(last: int = 1) -> Union[tuple[list, int], None]:
     tmp = datetime.now() + timedelta(minutes=15)
     date = tmp.strftime("%Y-%m-%d")
     while date not in G_data:
@@ -107,7 +108,7 @@ async def get_G_data(last: int = 1):
         if str(i) in G_data[date]:
             last -= 1
             if last == 0:
-                return G_data[date][str(i)]
+                return G_data[date][str(i)], i
     return None
 
 
@@ -139,6 +140,8 @@ async def handle(mather: Matcher):
 async def handle(matcher: Matcher, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
+    for uid in finance:
+        finance[uid] = 0
     await update_kusa()
     await scout_storage(Bank_bot, storage_handle)
     await matcher.finish()
@@ -161,8 +164,8 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
 
 @G_ce.handle()
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    now = await get_G_data()
-    last = await get_G_data(2)
+    now, _ = await get_G_data()
+    last, _ = await get_G_data(2)
     outputStr = ""
     for i in range(5):
         outputStr += f"\n{target[i]}校区: {now[i]}"
