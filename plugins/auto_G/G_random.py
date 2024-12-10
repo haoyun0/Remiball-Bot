@@ -22,7 +22,7 @@ systemRandom = random.SystemRandom()
 kusa = 0
 
 
-@scheduler.scheduled_job('cron', minute='0,30', second=3)
+@scheduler.scheduled_job('cron', minute='0,30', second=4)
 async def handle():
     await send_msg(GBot, user_id=chu_id, message='!G卖出 all')
 
