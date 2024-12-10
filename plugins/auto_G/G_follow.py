@@ -63,7 +63,7 @@ async def handle():
     await send_msg(GBot, user_id=chu_id, message='!G卖出 all')
 
 
-@scheduler.scheduled_job('cron', minute='29,59', second=20)
+@scheduler.scheduled_job('cron', minute='29,59', second=30)
 async def handle():
     await bank_freeze()
     await scout_storage(GBot, storage_handle)

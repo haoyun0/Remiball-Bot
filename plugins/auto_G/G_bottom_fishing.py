@@ -75,14 +75,14 @@ async def handle():
     G = await get_G_data()
 
     for i in range(5):
-        if (G[i] - G_data["value"][i]) / G_data["value"][i] > target_change[i] / 3:
+        if (G[i] - G_data["value"][i]) / G_data["value"][i] > target_change[i] / 6:
             invest = int(G_data["kusa_once"] / G[i])
             G_data["times"][i] -= 1
             G_data["own"][i] -= invest
             G_data["value"][i] = G[i]
             G_data["times_total"] -= 1
             await send_msg(GBot, user_id=chu_id, message=f'!G卖出 {target[i][0]} {invest}')
-        elif (G[i] - G_data["value"][i]) / G_data["value"][i] < -target_change[i] / 3:
+        elif (G[i] - G_data["value"][i]) / G_data["value"][i] < -target_change[i] / 6:
             if G_data["times"][i] < init_times * 2 and G_data["times_total"] < divide * 5:
                 invest = int(G_data["kusa_once"] / G[i])
                 G_data["times"][i] += 1

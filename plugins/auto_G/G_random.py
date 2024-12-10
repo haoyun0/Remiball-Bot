@@ -19,6 +19,8 @@ GBot = plugin_config.bot_g2
 target = ['东', '南', '北', '珠海', '深圳']
 systemRandom = random.SystemRandom()
 
+kusa = 0
+
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
 async def handle():
@@ -31,20 +33,30 @@ async def handle():
 
 
 async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
+    global kusa
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
+    await scout_storage(plugin_config.bot_g3, storage_handle_other)
 
-    G = await get_G_data()
 
-    p = []
+async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
+    G_data = await get_G_data()
+
+    global kusa
     tot = 0
+    c = [0, 0, 0, 0, 0]
     for i in range(5):
-        x = systemRandom.random() + 2
-        tot += x
-        p.append(x)
+        x = re.search(rf"G\({target[i]}校区\) \* (\d+)", arg)
+        if x is not None:
+            c[i] = int(int(x.group(1)) * G_data[i] * (0.5 + systemRandom.random()))
+            tot += c[i]
 
     for i in range(5):
-        c = int(kusa * p[i] / tot)
-        invest = int(c / G[i])
-        # 买入
-        await send_msg(GBot, user_id=chu_id, message=f'!G买入 {target[i][0]} {invest}')
+        c[i] /= tot
+
+    for i in range(5):
+        if c[i] > 0:
+            t = target[i]
+            coin = int(kusa * c[i])
+            invest = int(coin / G_data[i])
+            await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
     await matcher.finish()
