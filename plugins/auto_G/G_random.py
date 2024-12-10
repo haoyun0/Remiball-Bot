@@ -36,6 +36,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
     global kusa
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     await scout_storage(plugin_config.bot_g3, storage_handle_other)
+    await matcher.finish()
 
 
 async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
@@ -49,7 +50,7 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
         if x is not None:
             c[i] = int(int(x.group(1)) * G_data[i] * (0.5 + systemRandom.random()))
             tot += c[i]
-            if systemRandom.random() < 1.2 - turn / 200:
+            if systemRandom.random() > 1.2 - turn / 200:
                 c[i] = 0
 
     for i in range(5):
