@@ -107,6 +107,10 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot):
                     else:
                         max_kusa = min(data['remain_kusa'] - (x - 1), int(data['remain_kusa'] / x * 2))
                         kusa_get = random.randint(1, max_kusa)
+                        f = random.random()
+                        kusa_get = int(kusa_get / 3) if f < 0.1 else kusa_get
+                        kusa_get = 1 if f < 0.03 else kusa_get
+                        kusa_get = max(kusa_get, 1)
 
                     data['record'][event.user_id] = kusa_get
                     data['remain_kusa'] -= kusa_get
