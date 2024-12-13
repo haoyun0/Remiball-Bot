@@ -515,7 +515,7 @@ async def handle_give_loan(matcher: Annotated[Matcher, Depends(handleOnlyOnce, u
                            bot: Bot, state: T_State, arg: str = EventPlainText()):
     uid = state['uid']
     if '转让成功' in arg:
-        n = int(state['kusa'] * 0.01)
+        n = math.ceil(state['kusa'] * 0.01)
         await handout_divvy('贷款利息', int(n * 0.6))
         user_data[uid]['loan'] += state['kusa'] + n
         await savefile()
@@ -557,8 +557,8 @@ async def update_loan():
             if data['loan_free'] > 0:
                 data['loan_free'] -= 1
                 continue
-            n += int(data['loan'] * 0.01)
-            data['loan'] = int(data['loan'] * 1.01)
+            n += math.ceil(data['loan'] * 0.01)
+            data['loan'] = math.ceil(data['loan'] * 1.01)
     await handout_divvy('贷款利息', int(n * 0.6))
     await savefile()
 
@@ -761,13 +761,13 @@ async def handle(matcher: Matcher):
     async with (lock_divvy):
         fn = bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
         if fn / bank_data['total_kusa'] > 0.1:
-            m = int(0.15 * fn * bank_data['total_storage'] / bank_data['total_kusa'])
+            m0 = int(0.1 * fn)
+            m1 = int(m0 * bank_data['total_storage'] / bank_data['total_kusa'])
+            m2 = int((m0 - m1) / 2)
 
-            m2 = int(0.15 * m)
             bank_data['kusa_envelope'] = m2
-
-            m3 = m - m2
-            await handout_divvy('G市', m3)
+            await send_msg(bot_bank, group_id=ceg_group_id, message=f'草行为用户发出了{m1 + m2}草的G市分红')
+            await handout_divvy('G市', m1 + m2)
 
             await savefile()
     await send_msg(bot_bank, group_id=plugin_config.group_id_test, message='/集资')
