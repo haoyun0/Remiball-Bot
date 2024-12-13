@@ -190,15 +190,17 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
         if reply['user_id'] != chu_id:
             raise ValueError("并非除除")
         msg = reply['raw_message']
-        r = re.match(r'&#91;侦察卫星使用中&#93;\n.*?的仓库状况如下：\n', msg)
+        r = re.match(r'&#91;侦察卫星使用中&#93;\n(.+?)的仓库状况如下：\n', msg)
         if r is None:
             raise ValueError("并非侦察卫星")
         kusa = int(re.search(r'\n当前拥有草: (\d+)', msg).group(1))
+        kusa_G = 0
         for i in range(5):
             x = re.search(rf"\n当前财产：\n.*?G\({target[i]}校区\) \* (\d+)", msg)
             if x is not None:
-                kusa += int(int(x.group(1)) * G[i])
-        await send_msg2(event, f'该用户草加上G市总共有{kusa}草')
+                kusa_G += int(int(x.group(1)) * G[i])
+        await send_msg2(event, f'[CQ:reply,id={msg_id}]{r.group(1)}当前拥有{kusa}草\n'
+                               f'G市里拥有{kusa_G}草\n共计{kusa + kusa_G}草')
     except Exception as e:
         await send_msg2(event, f'请引用除草器的侦察卫星仓库消息\n错误: {e}')
     await matcher.finish()
