@@ -9,7 +9,7 @@ from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
     Bot,
-    GroupMessageEvent
+    GroupMessageEvent, Message
 )
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
@@ -54,6 +54,8 @@ G_reset = on_regex(r'^上周期的G神为',
                    rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
 G_ce = on_command('测G',
                   rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
+G_count = on_command('草计算',
+                     rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
 
 
 @get_G.handle()
@@ -176,4 +178,27 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
             s = '+' if r >= 0 else ""
             outputStr += f"({s}{r}%)"
     await send_msg2(event, outputStr.strip())
+    await matcher.finish()
+
+
+@G_count.handle()
+async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
+    msg_id = int(re.search(r'\[CQ:reply,id=(\d+)]', event.raw_message).group(1))
+    reply = await bot.get_msg(message_id=msg_id)
+    G, _ = await get_G_data()
+    try:
+        if reply['user_id'] != chu_id:
+            raise ValueError("并非除除")
+        msg = reply['raw_message']
+        r = re.match(r'&#91;侦察卫星使用中&#93;\n.*?的仓库状况如下：\n', msg)
+        if r is None:
+            raise ValueError("并非侦察卫星")
+        kusa = int(re.search(r'\n当前拥有草: (\d+)', msg).group(1))
+        for i in range(5):
+            x = re.search(rf"\n当前财产：\n.*?G\({target[i]}校区\) \* (\d+)", msg)
+            if x is not None:
+                kusa += int(int(x.group(1)) * G[i])
+        await send_msg2(event, f'该用户草加上G市总共有{kusa}草')
+    except Exception as e:
+        await send_msg2(event, f'请引用除草器的侦察卫星仓库消息\n错误: {e}')
     await matcher.finish()
