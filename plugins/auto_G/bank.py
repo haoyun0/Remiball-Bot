@@ -750,7 +750,7 @@ async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], st
     _ = on_regex(r'当前拥有草: \d+\n',
                  rule=PRIVATE() & isInBotList([bot]), permission=isInUserList([chu_id]), block=True,
                  temp=True, handlers=[func],
-                 state=state, expire_time=datetime.now() + timedelta(seconds=5))
+                 state=state, expire_time=datetime.now() + timedelta(seconds=9))
     await send_msg(bot, user_id=chu_id, message=msg)
 
 
