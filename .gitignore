@@ -2,6 +2,7 @@
 .venv/
 
 plugins/模拟
+plugins/auto_G/cheat.py
 # 本地启动文件
 autokusa启动.lnk
 start.bat
