@@ -84,7 +84,7 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
     G_data, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     global my_kusa, follow_id_num
-    tot = 0
+    tot = kusa
     c = [0, 0, 0, 0, 0]
     for i in range(5):
         x = re.search(rf"G\({target[i]}校区\) \* (\d+)", arg)
@@ -92,7 +92,7 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
 
-    if tot / (tot + kusa) < 0.3:
+    if kusa / tot > 0.6:
         follow_id_num += 1
         if follow_id_num < len(follow_id_list):
             await scout_storage(follow_id_list[follow_id_num], storage_handle_other)
@@ -111,5 +111,6 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
             invest = int(coin / G_data[i])
             await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
         outputStr += f"{round(c[i] * 100, 1)}%, "
-    await send_msg(GBot, user_id=plugin_config.bot_g1, message=outputStr[:-2])
+    outputStr += f"spare: {round(kusa / tot * 100)}%"
+    await send_msg(GBot, user_id=plugin_config.bot_g1, message=outputStr)
     await matcher.finish()
