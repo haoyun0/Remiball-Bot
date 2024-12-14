@@ -427,7 +427,7 @@ async def handle_receive4(matcher: Annotated[Matcher, Depends(handleOnlyOnce, us
     bank_data['factory_place'] = int(uid)
     await savefile()
     await send_msg(bot, user_id=chu_id, message=f'!转让 qq={uid} 流动生草工厂 {factory_num}')
-    await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]厂已借出，建完后请复制以下指令归还，'
+    await send_msg(bot, group_id=ceg_group_id, message=f'[CQ:at,qq={uid}]厂已借出，可以直接使用!购买 草精炼厂建厂了，建完后请复制以下指令归还，'
                                                        f'并在归还后使用"/草还厂"指令来结算费用\n'
                                                        f'\n!转让 qq={bot.self_id} 流动生草工厂 {factory_num}')
     await send_msg(bot_G3, user_id=notice_id, message=f'用户{uid}借走了流动生草工厂')
@@ -574,6 +574,14 @@ async def update_loan():
         await send_msg(bot_G3, user_id=chu_id, message=f'!草转让 qq={bot_bank} kusa={bank_data["kusa_envelope"]}')
         bank_data['kusa_envelope'] = 0
         await savefile()
+
+
+@scheduler.scheduled_job('cron', minute='1,11,21,31,41,51')
+async def check_factory():
+    if bank_data['factory_place'] != 0:
+        await send_msg(bot_bank, group_id=ceg_group_id,
+                       message=f"[CQ:at,qq={bank_data['factory_place']}]自动提示:\n"
+                               f"请记得还流动厂，如已经还厂，请使用'/草还厂'指令，并仔细阅读其提示")
 
 
 @bank_kusa_query.handle()
