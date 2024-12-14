@@ -372,6 +372,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
     if not arg.isdigit() or len(arg) == 0 or int(arg) <= 4 or int(arg) > 10:
         await send_msg2(event, "请在指令参数中输入您的信息员等级+生草工厂自动工艺等级\n"
                                "例如信息员lv7，买了333的生草工厂自动工艺I，则输入/草还厂 8\n"
+                               "!仓库可看自己信息员等级，!能力可以看到自动工艺等级\n"
                                "请注意诚信，否则可能上银行失信名单")
         await matcher.finish()
     await scout_storage(bot_bank, storage_handle, state={'uid': event.get_user_id(), 'level': int(arg)})
