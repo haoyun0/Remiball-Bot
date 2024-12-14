@@ -80,6 +80,8 @@ bank_kusa_update = on_command('草结算',
                               rule=isInBotList([bot_bank]), permission=SUPERUSER)
 bank_loan_free = on_command('草免息',
                             rule=isInBotList([bot_bank]), permission=SUPERUSER)
+bank_admin_divvy = on_command('草分红',
+                              rule=isInBotList([bot_bank]), permission=SUPERUSER)
 # 并非指令
 cnt_divvy = on_regex('^新的G周期开始了！上个周期的G已经自动兑换为草。$',
                      rule=Message_select_group(ceg_group_id) & isInBotList([bot_bank]),
@@ -567,7 +569,7 @@ async def update_loan():
 async def update_loan():
     if bank_data['kusa_envelope'] > 0:
         await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={bot_G3} kusa={bank_data["kusa_envelope"]}')
-        await send_msg(bot_G3, group_id=ceg_group_id, message="!发草包 20")
+        await send_msg(bot_G3, group_id=ceg_group_id, message="!发草包 15")
         await asyncio.sleep(3)
         await send_msg(bot_G3, user_id=chu_id, message=f'!草转让 qq={bot_bank} kusa={bank_data["kusa_envelope"]}')
         bank_data['kusa_envelope'] = 0
@@ -689,6 +691,14 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     await matcher.finish()
 
 
+@bank_admin_divvy.handle()
+async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
+    args = arg.extract_plain_text().strip().split()
+    await handout_divvy(args[0], int(args[1]))
+    await send_msg2(event, f'分发{args[0]}分红{args[1]}草成功')
+    await matcher.finish()
+
+
 async def get_user_true_kusa(bot: Bot, user_id: int) -> int:
     uid = str(user_id)
     if uid in bot.config.superusers:
@@ -757,9 +767,9 @@ async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], st
 @cnt_divvy.handle()
 async def handle(matcher: Matcher):
     await bank_freeze()
-    bank_data['finance'] = [0, 0, 0, 0]
     async with (lock_divvy):
         fn = bank_data['finance'][0] + bank_data['finance'][1] + bank_data['finance'][2] + bank_data['finance'][3]
+        bank_data['finance'] = [0, 0, 0, 0]
         if fn / bank_data['total_kusa'] > 0.1:
             m0 = int(0.1 * fn)
             m1 = int(m0 * bank_data['total_storage'] / bank_data['total_kusa'])
