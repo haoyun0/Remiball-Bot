@@ -164,7 +164,7 @@ async def update_kusa():
                 data['kusa'] -= num
     await savefile()
     if bank_data["kusa_envelope"] > 0:
-        outputStr = f'草行将于明天中午11:30发出{bank_data["kusa_envelope"]}草的草包，记得来领取哦^ ^\n'
+        outputStr = f'草行将于明天中午11:35发出{bank_data["kusa_envelope"]}草的草包，记得来领取哦^ ^\n'
         await send_msg(bot_bank, group_id=ceg_group_id, message=outputStr)
     await bank_unfreeze()
 
@@ -566,11 +566,11 @@ async def update_loan():
     await savefile()
 
 
-@scheduler.scheduled_job('cron', hour=11, minute=30)
+@scheduler.scheduled_job('cron', hour=11, minute=35)
 async def update_loan():
     if bank_data['kusa_envelope'] > 0:
         await send_msg(bot_bank, user_id=chu_id, message=f'!草转让 qq={bot_G3} kusa={bank_data["kusa_envelope"]}')
-        await send_msg(bot_G3, group_id=ceg_group_id, message="!发草包 15")
+        await send_msg(bot_G3, group_id=ceg_group_id, message="/发草包 15")
         await asyncio.sleep(3)
         await send_msg(bot_G3, user_id=chu_id, message=f'!草转让 qq={bot_bank} kusa={bank_data["kusa_envelope"]}')
         bank_data['kusa_envelope'] = 0
