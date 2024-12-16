@@ -579,6 +579,10 @@ async def update_loan():
 
 @scheduler.scheduled_job('cron', minute='1,11,21,31,41,51')
 async def check_factory():
+    if bank_data['scout'] <= 100:
+        bank_data['scout'] += 100
+        await send_msg(bot_bank, user_id=chu_id, message=f'!购买 侦察凭证 100')
+        await savefile()
     if bank_data['factory_place'] != 0:
         await send_msg(bot_bank, group_id=ceg_group_id,
                        message=f"[CQ:at,qq={bank_data['factory_place']}]自动提示:\n"
@@ -757,9 +761,6 @@ async def scout_storage(uid: Union[str, int], func: Callable[..., Awaitable], st
     if int(uid) not in [plugin_config.bot_g0, plugin_config.bot_g1, plugin_config.bot_g2, plugin_config.bot_g3]:
         bot = bot_bank
         msg = f'!仓库 qq={uid}'
-        if bank_data['scout'] <= 100:
-            bank_data['scout'] += 100
-            await send_msg(bot_bank, user_id=chu_id, message=f'!购买 侦察凭证 100')
         bank_data['scout'] -= 1
         await savefile()
     else:

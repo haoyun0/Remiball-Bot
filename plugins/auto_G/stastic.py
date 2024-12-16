@@ -6,7 +6,7 @@ from typing import Union
 
 from nonebot import require, on_regex, on_command, logger, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import EventPlainText
+from nonebot.params import EventPlainText, Depends
 from nonebot.adapters.onebot.v11 import (
     Bot,
     GroupMessageEvent, Message
@@ -14,7 +14,7 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage
+from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage, freeze_depend
 from .G_pic import draw_G_pic
 from .config import Config
 from .cheat import fake_accounts
@@ -155,7 +155,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     d = await get_bank_divvy()
     await set_bank_kusa(kusa - d)
-    gift = (kusa - d) // 4
+    gift = (kusa - d) // 5
     # 银行各策略资金
     for uid in bot.config.superusers:
         if uid != str(Bank_bot):
@@ -166,7 +166,7 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     await matcher.finish()
 
 
-@G_ce.handle()
+@G_ce.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
     now, _ = await get_G_data()
     last, _ = await get_G_data(2)

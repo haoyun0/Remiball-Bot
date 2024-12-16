@@ -22,6 +22,8 @@ plugin_config = Config.parse_obj(get_driver().config)
 chu_id = plugin_config.bot_chu
 GBot = plugin_config.bot_main
 follow_id_num = 0
+follow_num = 2
+follow_cnt = 0
 
 target = ['东', '南', '北', '珠海', '深圳']
 my_kusa = 0
@@ -63,16 +65,17 @@ async def handle():
     await send_msg(GBot, user_id=chu_id, message='!G卖出 all')
 
 
-@scheduler.scheduled_job('cron', minute='29,59', second=30)
+@scheduler.scheduled_job('cron', minute='29,59', second=20)
 async def handle():
     await bank_freeze()
     await scout_storage(GBot, storage_handle)
 
 
 async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
-    global my_kusa, follow_id_num
+    global my_kusa, follow_id_num, follow_cnt
     my_kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     follow_id_num = 0
+    follow_cnt = 0
     scout_num = int(re.search(r'侦察凭证 \* (\d+)', arg).group(1))
     await set_bank_scout(scout_num)
 
@@ -83,7 +86,7 @@ async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
 async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
     G_data, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
-    global my_kusa, follow_id_num
+    global my_kusa, follow_id_num, follow_cnt
     tot = kusa
     c = [0, 0, 0, 0, 0]
     for i in range(5):
@@ -92,25 +95,24 @@ async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
             c[i] = int(int(x.group(1)) * G_data[i])
             tot += c[i]
 
-    if kusa / tot > 0.6:
-        follow_id_num += 1
-        if follow_id_num < len(follow_id_list):
-            await scout_storage(follow_id_list[follow_id_num], storage_handle_other)
-            await matcher.finish()
-        else:
-            return
-    else:
+    if kusa / tot <= 0.5:
+        follow_cnt += 1
         for i in range(5):
             c[i] /= tot
 
-    outputStr = f"followers:{follow_id_list[follow_id_num]}\n"
-    for i in range(5):
-        if c[i] > 0:
-            t = target[i]
-            coin = int(my_kusa * c[i])
-            invest = int(coin / G_data[i])
-            await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
-        outputStr += f"{round(c[i] * 100, 1)}%, "
-    outputStr += f"spare: {round(kusa / tot * 100)}%"
-    await send_msg(GBot, user_id=plugin_config.bot_g1, message=outputStr)
+        outputStr = f"followers:{follow_id_list[follow_id_num]}\n"
+        for i in range(5):
+            if c[i] > 0:
+                t = target[i]
+                coin = int(my_kusa * c[i] / follow_num)
+                invest = int(coin / G_data[i])
+                await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+            outputStr += f"{round(c[i] * 100, 1)}%, "
+        outputStr += f"spare: {round(kusa / tot * 100)}%"
+        await send_msg(GBot, user_id=plugin_config.bot_g1, message=outputStr)
+
+    if follow_cnt < follow_num:
+        follow_id_num += 1
+        if follow_id_num < len(follow_id_list):
+            await scout_storage(follow_id_list[follow_id_num], storage_handle_other)
     await matcher.finish()
