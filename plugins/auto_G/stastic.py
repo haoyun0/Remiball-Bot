@@ -17,7 +17,6 @@ from ..params.permission import isInUserList, SUPERUSER
 from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage, freeze_depend
 from .G_pic import draw_G_pic
 from .config import Config
-from .cheat import fake_accounts
 from nonebot_plugin_apscheduler import scheduler
 
 require("nonebot_plugin_apscheduler")
@@ -87,7 +86,6 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
 
     try:
         m: list[int] = [finance[G_bot_list[0]], finance[G_bot_list[1]], finance[G_bot_list[2]], finance[G_bot_list[3]]]
-        await fake_accounts(m)
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
