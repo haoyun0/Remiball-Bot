@@ -29,6 +29,7 @@ target = ['东', '南', '北', '珠海', '深圳']
 my_kusa = 0
 
 set_follow = on_command('G跟踪', rule=isInBotList([GBot]), permission=SUPERUSER)
+set_follow_rearrange = on_command('G跟踪更改', rule=isInBotList([GBot]), permission=SUPERUSER)
 
 try:
     with open(r'C:/Data/G_follow.txt', 'r', encoding='utf-8') as f:
@@ -60,12 +61,31 @@ async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandAr
     await matcher.finish()
 
 
+@set_follow_rearrange.handle()
+async def handle(matcher: Matcher, event: MessageEvent, arg: Message = CommandArg()):
+    global follow_id_list
+    args = arg.extract_plain_text().strip().split()
+    if len(args) != len(follow_id_list):
+        await send_msg2(event, "请输入跟G名单一样多的数字0开始")
+        await matcher.finish()
+    try:
+        new_id_list = []
+        for x in args:
+            new_id_list.append(follow_id_list[int(x)])
+        follow_id_list = new_id_list
+        await savefile()
+        await send_msg2(event, f"跟G名单更新为{follow_id_list}")
+    except:
+        await send_msg2(event, "请输入跟G名单一样多的数字0开始")
+    await matcher.finish()
+
+
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
 async def handle():
     await send_msg(GBot, user_id=chu_id, message='!G卖出 all')
 
 
-@scheduler.scheduled_job('cron', minute='29,59', second=10)
+@scheduler.scheduled_job('cron', minute='29,59', second=25)
 async def handle():
     await bank_freeze()
     await scout_storage(GBot, storage_handle)
