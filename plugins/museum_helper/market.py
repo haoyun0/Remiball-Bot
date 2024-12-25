@@ -2,7 +2,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime, timedelta
 
-from nonebot import require, get_driver, on_regex, on_command
+from nonebot import require, get_driver, on_regex, on_command, on_fullmatch
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from nonebot.adapters.onebot.v11 import (
@@ -22,8 +22,8 @@ base_date = datetime(year=2024, month=3, day=11)
 server_fix = [-149, -149, -148, -147, -145, -140, -133, -126, -118, -112, -109, -105, -101, -98, -91, -84, -80, -75,
               -69, -66, -59, -52, -49, -42, -38, -35, -28, -21, -14, -11, -6]
 
-market_price = on_regex(r'^(\d+[区服])?市场', block=False, priority=2,
-                        rule=isInGroupList(plugin_config.museum_groups) & isInBotList([plugin_config.museum_bot]))
+market_price = on_fullmatch(r'市场', block=False, priority=2,
+                            rule=isInGroupList(plugin_config.museum_groups) & isInBotList([plugin_config.museum_bot]))
 spawn_image = on_command("市场生成",
                          rule=isInGroupList(plugin_config.museum_groups) & isInBotList([plugin_config.museum_bot]))
 
