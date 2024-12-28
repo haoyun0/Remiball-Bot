@@ -58,7 +58,7 @@ async def handle(matcher: Matcher, event: MessageEvent, bot: Bot, msg: Message =
                 await send_msg2(event, data[date])
     else:
         if len(str(msg)) < 20:
-            r2 = re.search(r"昨[天|日].*?[码吗麻嘛妈马玛]是.*?(啥|什么|\?|？).*?", str(msg))
+            r2 = re.search(r"昨[天日儿个].*?[码吗麻嘛妈马玛]是.*?(啥|什么|\?|？).*?", str(msg))
             if r2 is not None:
                 t = datetime.now() - timedelta(days=1)
                 date = t.strftime("%Y-%m-%d")
@@ -66,7 +66,7 @@ async def handle(matcher: Matcher, event: MessageEvent, bot: Bot, msg: Message =
                     outputMsg = f"[CQ:reply,id={event.message_id}]" + data[date]
                     outputMsg += "\n但是可能已经失效了" if t.hour >= 12 else ""
                     await send_msg2(event, outputMsg)
-            r3 = re.search(r"今[天|日].*?[码吗麻嘛妈马玛]是.*?(啥|什么|\?|？).*?", str(msg))
+            r3 = re.search(r"今[天日儿个].*?[码吗麻嘛妈马玛]是.*?(啥|什么|\?|？).*?", str(msg))
             if r3 is not None:
                 t = datetime.now()
                 date = t.strftime("%Y-%m-%d")
