@@ -1,12 +1,14 @@
 import random
 import re
 
-from nonebot import require, get_driver
+from nonebot import require, get_driver, on_command
 from nonebot.matcher import Matcher
 from nonebot.params import EventPlainText
 from ..params.message_api import send_msg
-from .stastic import get_G_data
+from ..params.rule import isInBotList
+from ..params.permission import SUPERUSER
 from .bank import scout_storage
+from .stastic import get_G_data
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
 
@@ -19,47 +21,34 @@ GBot = plugin_config.bot_g2
 target = ['东', '南', '北', '珠海', '深圳']
 systemRandom = random.SystemRandom()
 
-kusa = 0
+invest_reset = on_command('G_reset', rule=isInBotList([GBot]), permission=SUPERUSER)
 
 
-@scheduler.scheduled_job('cron', minute='0,30', second=4)
-async def handle():
+@invest_reset.handle()
+async def handle(matcher: Matcher):
     await send_msg(GBot, user_id=chu_id, message='!G卖出 all')
-
-
-@scheduler.scheduled_job('cron', minute='29,59', second=40)
-async def handle():
     await scout_storage(GBot, storage_handle)
-
-
-async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
-    global kusa
-    kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
-    await scout_storage(plugin_config.bot_g3, storage_handle_other)
     await matcher.finish()
 
 
-async def storage_handle_other(matcher: Matcher, arg: str = EventPlainText()):
-    G_data, turn = await get_G_data()
+async def storage_handle(matcher: Matcher, arg: str = EventPlainText()):
+    G_data, _ = await get_G_data()
+    kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
+    for i in range(5):
+        invest = int(kusa / 5 / G_data[i])
+        await send_msg(GBot, user_id=chu_id, message=f'!G买入 {target[i][0]} {invest}')
+    await matcher.finish()
 
-    global kusa
-    tot = 0
-    c = [0, 0, 0, 0, 0]
+
+@scheduler.scheduled_job('cron', minute='1,31')
+async def handle():
+    await scout_storage(GBot, storage_handle2)
+
+
+async def storage_handle2(matcher: Matcher, arg: str = EventPlainText()):
     for i in range(5):
         x = re.search(rf"G\({target[i]}校区\) \* (\d+)", arg)
-        if x is not None:
-            c[i] = int(int(x.group(1)) * G_data[i] * (0.5 + systemRandom.random()))
-            tot += c[i]
-            if systemRandom.random() > 1.2 - turn / 100:
-                c[i] = 0
-
-    for i in range(5):
-        c[i] /= tot
-
-    for i in range(5):
-        if c[i] > 0:
-            t = target[i]
-            coin = int(kusa * c[i])
-            invest = int(coin / G_data[i])
-            await send_msg(GBot, user_id=chu_id, message=f'!G买入 {t[0]} {invest}')
+        num = int(x.group(1))
+        if systemRandom.random() < 0.35:
+            await send_msg(GBot, user_id=chu_id, message=f'!G卖出 {target[i][0]} {round(num * 0.05)}')
     await matcher.finish()

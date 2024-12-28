@@ -1,8 +1,6 @@
 from .bank import plugin_config
 from .stastic import plugin_config
-from .G_follow import plugin_config
 from .G_free import plugin_config
-# from .G_control import plugin_config
 from .G_random import plugin_config
 from .G_bottom_fishing import plugin_config
 from nonebot.plugin import PluginMetadata

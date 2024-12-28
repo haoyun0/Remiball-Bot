@@ -14,7 +14,8 @@ from nonebot.adapters.onebot.v11 import (
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage, freeze_depend
+from .bank import (set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa,
+                   scout_storage, freeze_depend, bank_freeze)
 from .G_pic import draw_G_pic
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
@@ -89,8 +90,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += (f"\n跟G: {m[0]}m, 抄底: {m[3]}m"
-                      f"\n无形: {m[1]}m, 随机: {m[2]}m")
+        outputStr += f"\n无形: {m[1]}m, 抄底: {m[3]}m, 随机: {m[2]}m"
     except:
         await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
@@ -112,6 +112,11 @@ async def get_G_data(last: int = 1) -> Union[tuple[list, int], None]:
             if last == 0:
                 return G_data[date][str(i)], i
     return None
+
+
+@scheduler.scheduled_job('cron', minute='29,59', second=59)
+async def handle():
+    await bank_freeze()
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
@@ -155,9 +160,10 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     await set_bank_kusa(kusa - d)
     gift = (kusa - d) // 5
     # 银行各策略资金
-    for uid in bot.config.superusers:
-        if uid != str(Bank_bot):
-            await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g1} kusa={gift * 2}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g2} kusa={gift}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g3} kusa={gift}")
+
     await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
     await asyncio.sleep(10)
     await send_msg(Bank_bot, group_id=test_group_id, message='/G_reset')
