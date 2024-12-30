@@ -2,18 +2,20 @@ import asyncio
 import json
 import re
 from datetime import datetime, timedelta
+from typing import Union
 
 from nonebot import require, on_regex, on_command, logger, get_driver
 from nonebot.matcher import Matcher
-from nonebot.params import EventPlainText
+from nonebot.params import EventPlainText, Depends
 from nonebot.adapters.onebot.v11 import (
     Bot,
-    GroupMessageEvent
+    GroupMessageEvent, Message
 )
 from ..params.message_api import send_msg, send_msg2
 from ..params.rule import isInBotList, PRIVATE, Message_select_group
 from ..params.permission import isInUserList, SUPERUSER
-from .bank import set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa, scout_storage
+from .bank import (set_finance, update_kusa, bank_unfreeze, get_bank_divvy, set_bank_kusa,
+                   scout_storage, freeze_depend, bank_freeze)
 from .G_pic import draw_G_pic
 from .config import Config
 from nonebot_plugin_apscheduler import scheduler
@@ -52,6 +54,8 @@ G_reset = on_regex(r'^上周期的G神为',
                    rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]), permission=isInUserList([chu_id]))
 G_ce = on_command('测G',
                   rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
+G_count = on_command('草计算',
+                     rule=Message_select_group(ceg_group_id) & isInBotList([Bank_bot]))
 
 
 @get_G.handle()
@@ -86,8 +90,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
         await set_finance(m.copy())
         for i in range(4):
             m[i] = round(m[i] / 1000000)
-        outputStr += (f"\n有形: {m[2]}m, 跟G: {m[0]}m,"
-                      f"无形: {m[1]}m, 抄底: {m[3]}m")
+        outputStr += f"\n无形: {m[1]}m, 抄底: {m[3]}m, 随机: {m[2]}m"
     except:
         await send_msg(bot, user_id=notice_id, message=str(finance))
         logger.error(f'更新盈亏失败#{len(finance)}')
@@ -97,7 +100,7 @@ async def handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
     await matcher.finish()
 
 
-async def get_G_data(last: int = 1):
+async def get_G_data(last: int = 1) -> Union[tuple[list, int], None]:
     tmp = datetime.now() + timedelta(minutes=15)
     date = tmp.strftime("%Y-%m-%d")
     while date not in G_data:
@@ -107,8 +110,13 @@ async def get_G_data(last: int = 1):
         if str(i) in G_data[date]:
             last -= 1
             if last == 0:
-                return G_data[date][str(i)]
+                return G_data[date][str(i)], i
     return None
+
+
+@scheduler.scheduled_job('cron', minute='29,59', second=59)
+async def handle():
+    await bank_freeze()
 
 
 @scheduler.scheduled_job('cron', minute='0,30', second=3)
@@ -139,6 +147,8 @@ async def handle(mather: Matcher):
 async def handle(matcher: Matcher, arg: str = EventPlainText()):
     if 'Tokens' in arg:
         await matcher.finish()
+    for uid in finance:
+        finance[uid] = 0
     await update_kusa()
     await scout_storage(Bank_bot, storage_handle)
     await matcher.finish()
@@ -148,21 +158,22 @@ async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     d = await get_bank_divvy()
     await set_bank_kusa(kusa - d)
-    gift = (kusa - d) // 4
+    gift = (kusa - d) // 5
     # 银行各策略资金
-    for uid in bot.config.superusers:
-        if uid != str(Bank_bot):
-            await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={uid} kusa={gift}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g1} kusa={gift * 2}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g2} kusa={gift}")
+    await send_msg(bot, user_id=chu_id, message=f"!草转让 qq={plugin_config.bot_g3} kusa={gift}")
+
     await send_msg(Bank_bot, user_id=chu_id, message='!交易总结')
     await asyncio.sleep(10)
     await send_msg(Bank_bot, group_id=test_group_id, message='/G_reset')
     await matcher.finish()
 
 
-@G_ce.handle()
+@G_ce.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    now = await get_G_data()
-    last = await get_G_data(2)
+    now, _ = await get_G_data()
+    last, _ = await get_G_data(2)
     outputStr = ""
     for i in range(5):
         outputStr += f"\n{target[i]}校区: {now[i]}"
@@ -171,4 +182,29 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
             s = '+' if r >= 0 else ""
             outputStr += f"({s}{r}%)"
     await send_msg2(event, outputStr.strip())
+    await matcher.finish()
+
+
+@G_count.handle()
+async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
+    msg_id = int(re.search(r'\[CQ:reply,id=(\d+)]', event.raw_message).group(1))
+    reply = await bot.get_msg(message_id=msg_id)
+    G, _ = await get_G_data()
+    try:
+        if reply['user_id'] != chu_id:
+            raise ValueError("并非除除")
+        msg = reply['raw_message']
+        r = re.match(r'&#91;侦察卫星使用中&#93;\n(.+?)的仓库状况如下：\n', msg)
+        if r is None:
+            raise ValueError("并非侦察卫星")
+        kusa = int(re.search(r'\n当前拥有草: (\d+)', msg).group(1))
+        kusa_G = 0
+        for i in range(5):
+            x = re.search(rf"\n当前财产：\n.*?G\({target[i]}校区\) \* (\d+)", msg)
+            if x is not None:
+                kusa_G += int(int(x.group(1)) * G[i])
+        await send_msg2(event, f'[CQ:reply,id={msg_id}]{r.group(1)}当前拥有{kusa}草\n'
+                               f'G市里拥有{kusa_G}草\n共计{kusa + kusa_G}草')
+    except Exception as e:
+        await send_msg2(event, f'请引用除草器的侦察卫星仓库消息\n错误: {e}')
     await matcher.finish()

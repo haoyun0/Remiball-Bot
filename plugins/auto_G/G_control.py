@@ -49,6 +49,7 @@ except:
         "kusa": 0
     }
 operate_data = {}
+limit = 50000000
 
 
 async def savefile():
@@ -64,7 +65,7 @@ async def handle(matcher: Matcher, bot: Bot):
 
 
 async def storage_handle(matcher: Matcher, bot: Bot, arg: str = EventPlainText()):
-    G = await get_G_data()
+    G, _ = await get_G_data()
     kusa = int(re.search(r'当前拥有草: (\d+)', arg).group(1))
     G_data['kusa'] = kusa
     for i in range(5):
@@ -84,7 +85,7 @@ async def handle():
 @G_permit.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         outputStr = '没有权限'
     else:
         outputStr = f'您每次最多可以控制{m}草的G'
@@ -94,8 +95,8 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent):
 
 @G_hold_on.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, event: GroupMessageEvent):
-    G = await get_G_data()
-    G_last = await get_G_data(2)
+    G, _ = await get_G_data()
+    G_last, _ = await get_G_data(2)
     tot = 0
     outputStr = f'空闲的草: {G_data["kusa"]}'
     outputStr2 = '\n拥有的G:'
@@ -116,7 +117,7 @@ async def handle(matcher: Matcher, event: GroupMessageEvent):
 @G_buy_in.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         await send_msg2(event, '没有权限')
         await matcher.finish()
     if G_data["kusa"] < 1000000:
@@ -126,7 +127,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await send_msg2(event, '本期操作次数达到上限')
         await matcher.finish()
     async with lock_operate:
-        G = await get_G_data()
+        G, _ = await get_G_data()
         args = arg.extract_plain_text().strip().split()
         n = len(args)
         k = 0
@@ -166,7 +167,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
 @G_sell_out.handle(parameterless=[Depends(freeze_depend)])
 async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Message = CommandArg()):
     m = await get_user_true_kusa(bot, event.user_id)
-    if m < 10000000:
+    if m < limit:
         await send_msg2(event, '没有权限')
         await matcher.finish()
     if not check_operate(event.user_id):
@@ -174,7 +175,7 @@ async def handle(matcher: Matcher, bot: Bot, event: GroupMessageEvent, arg: Mess
         await matcher.finish()
 
     async with lock_operate:
-        G = await get_G_data()
+        G, _ = await get_G_data()
         args = arg.extract_plain_text().strip().split()
         k = 0
         operate = {}

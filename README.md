@@ -26,7 +26,7 @@ plugins.params.permission，自己写permission
 
 plugins.params.hook_bot，hook钩子函数使用，实例为只让一个bot响应插件，并让其他bot只响应排除列表的插件
 
-plugins.params.message_api，整合了onebot11发消息api，后续可用于统计发消息数
+plugins.params.message_api，整合了onebot11发消息api，自己写的插件都通过这个api发消息，后续可用于统计发消息数
 
 plugins.auto_G.bank，功能最全的一集，on_command, on_regex, 依赖注入（维护状态不允许响应/一条消息即使是同优先级也只被响应一次），
 定时任务，config配置文件使用，rule和permission的使用，临时添加事件响应器。

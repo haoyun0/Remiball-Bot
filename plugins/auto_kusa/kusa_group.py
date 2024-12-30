@@ -44,10 +44,10 @@ is_rename_to_other = {str(plugin_config.bot_g0): False,
                       str(plugin_config.bot_g1): False,
                       str(plugin_config.bot_g2): False,
                       str(plugin_config.bot_g3): False}
-name_origin = {str(plugin_config.bot_g1): '看不见的手',
-               str(plugin_config.bot_g2): '提线木偶',
-               str(plugin_config.bot_g0): '仿生泪滴',
-               str(plugin_config.bot_g3): '抄底狂魔'}
+name_origin = {str(plugin_config.bot_g1): '无为',
+               str(plugin_config.bot_g2): '随机',
+               str(plugin_config.bot_g0): '银行',
+               str(plugin_config.bot_g3): '抄底'}
 with open(file_rank_list, mode="r", encoding='utf-8') as file:
     data_free = json.loads(file.read())
     rank_list = data_free['rank_list']

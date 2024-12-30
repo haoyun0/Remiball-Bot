@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timedelta
 
 from nonebot import on_regex, require, get_bots, get_driver
@@ -73,6 +74,7 @@ async def handle(matcher: Matcher, event: MessageEvent, bot: Bot, arg: str = Eve
             finish_time[event.self_id] += timedelta(seconds=sec)
         spare = False
     else:
+        time_tmp = -1
         finish_time[event.self_id] = datetime.now()
         spare = True
 
@@ -104,6 +106,9 @@ async def handle(matcher: Matcher, event: MessageEvent, bot: Bot, arg: str = Eve
                 await send_msg(bot, user_id=chu_id, message="!禁用 红茶")
                 await send_msg(bot, user_id=chu_id, message="!生草 不灵草")
                 await send_msg(bot, user_id=chu_id, message="!启用 红茶")
+    if time_tmp == 0:
+        await asyncio.sleep(8)
+        await send_msg(bot, user_id=chu_id, message='!百草园')
     await matcher.finish()
 
 

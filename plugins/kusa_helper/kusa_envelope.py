@@ -49,6 +49,7 @@ async def handle_receive(matcher: Annotated[Matcher, Depends(handleOnlyOnce, use
             'remain_kusa': kusa_num,
             'nums': state['nums'],
             'remain_num': state['nums'],
+            'user_id': uid,
             'record': {}
         }
         envelopes.append(data)
@@ -75,7 +76,6 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, arg: Message = Comm
         await matcher.finish()
     dic = {
         'group_id': event.group_id,
-        'user_id': event.user_id,
         'nums': num
     }
     _ = on_regex(r"\(\d+\)转让了\d+个草给你！", state=dic,
@@ -107,6 +107,10 @@ async def handle(matcher: Matcher, event: GroupMessageEvent, bot: Bot):
                     else:
                         max_kusa = min(data['remain_kusa'] - (x - 1), int(data['remain_kusa'] / x * 2))
                         kusa_get = random.randint(1, max_kusa)
+                        f = random.random()
+                        kusa_get = int(kusa_get / 3) if f < 0.1 else kusa_get
+                        kusa_get = 1 if f < 0.03 else kusa_get
+                        kusa_get = max(kusa_get, 1)
 
                     data['record'][event.user_id] = kusa_get
                     data['remain_kusa'] -= kusa_get

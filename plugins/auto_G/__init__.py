@@ -1,8 +1,7 @@
 from .bank import plugin_config
 from .stastic import plugin_config
-from .G_follow import plugin_config
 from .G_free import plugin_config
-from .G_control import plugin_config
+from .G_random import plugin_config
 from .G_bottom_fishing import plugin_config
 from nonebot.plugin import PluginMetadata
 
@@ -77,13 +76,6 @@ __plugin_meta__ = PluginMetadata(
                 'trigger_condition': '用户指令',
                 'brief_des': '开始自助还款流程',
                 'detail_des': '/草还款'
-            },
-            {
-                'func': '提线木偶',
-                'trigger_method': 'G帮助',
-                'trigger_condition': '用户指令',
-                'brief_des': '查看给用户控制炒G相关',
-                'detail_des': '/G帮助'
             },
             {
                 'func': '借流动厂',
